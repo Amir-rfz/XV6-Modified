@@ -215,6 +215,23 @@ static void backwardCursor(){
   //crt[pos] = ' ' | 0x0700;
 }
 
+static void forwardCursor(){
+  int pos;
+  // get cursor position
+  outb(CRTPORT, 14);
+  pos = inb(CRTPORT+1) << 8;
+  outb(CRTPORT, 15);
+  pos |= inb(CRTPORT+1);
+  // move forward
+  pos++;
+  // reset cursor
+  outb(CRTPORT, 14);
+  outb(CRTPORT+1, pos>>8);
+  outb(CRTPORT, 15);
+  outb(CRTPORT+1, pos);
+  //crt[pos] = ' ' | 0x0700;
+}
+
 void consputs(const char* s){
   for(int i = 0; i < INPUT_BUF && s[i]; ++i){
     input.buf[input.e++ % INPUT_BUF] = s[i];
@@ -261,6 +278,10 @@ consoleintr(int (*getc)(void))
         backwardCursor();
         num_of_backs++;
       break;
+      case KEY_RT:  // Cursor Backward
+          forwardCursor();
+          num_of_backs--;
+        break;
     case C('P'):  // Process listing.
       // procdump() locks cons.lock indirectly; invoke later
       doprocdump = 1;
@@ -362,4 +383,3 @@ consoleinit(void)
 
   ioapicenable(IRQ_KBD, 0);
 }
-
