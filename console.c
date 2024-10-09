@@ -15,6 +15,8 @@
 #include "proc.h"
 #include "x86.h"
 
+int num_of_backs = 0;
+
 static void consputc(int);
 
 static int panicked = 0;
@@ -142,9 +144,16 @@ cgaputc(int c)
   if(c == '\n')
     pos += 80 - pos%80;
   else if(c == BACKSPACE){
+    for (int i = pos - 1 ; i < pos + num_of_backs ; i++)
+      crt[i] = crt[i + 1];
+
     if(pos > 0) --pos;
-  } else
+  } else{
+    for (int i = pos + num_of_backs; i > pos ; i--)
+      crt[i] = crt[i - 1];
     crt[pos++] = (c&0xff) | 0x0700;  // black on white
+  }
+
 
   if(pos < 0 || pos > 25*80)
     panic("pos under/overflow");
@@ -159,7 +168,7 @@ cgaputc(int c)
   outb(CRTPORT+1, pos>>8);
   outb(CRTPORT, 15);
   outb(CRTPORT+1, pos);
-  crt[pos] = ' ' | 0x0700;
+  crt[pos + num_of_backs] = ' ' | 0x0700;
 }
 
 void
@@ -188,6 +197,58 @@ struct {
 
 #define C(x)  ((x)-'@')  // Control-x
 
+static void backwardCursor(){
+  int pos;
+  // get cursor position
+  outb(CRTPORT, 14);
+  pos = inb(CRTPORT+1) << 8;
+  outb(CRTPORT, 15);
+  pos |= inb(CRTPORT+1);
+  // move back
+  if(crt[pos - 2] != ('$' | 0x0700))
+    pos--;
+  // reset cursor
+  outb(CRTPORT, 14);
+  outb(CRTPORT+1, pos>>8);
+  outb(CRTPORT, 15);
+  outb(CRTPORT+1, pos);
+  //crt[pos] = ' ' | 0x0700;
+}
+
+void consputs(const char* s){
+  for(int i = 0; i < INPUT_BUF && s[i]; ++i){
+    input.buf[input.e++ % INPUT_BUF] = s[i];
+    consputc(s[i]);
+  }
+}
+void shiftbuf() {
+    for (int i = input.e; i >= input.e - num_of_backs; i--)
+    {
+        input.buf[i] = input.buf[i - 1]; // Shift elements to the right
+    }
+}
+void bufputc(char c){
+  if(num_of_backs >0){
+      shiftbuf();
+      }
+  input.buf[(input.e - num_of_backs)% INPUT_BUF] = c;
+  input.e++;
+  
+}
+
+void consclear(){
+  while(input.e !=  input.w &&
+        input.buf[(input.e-1) % INPUT_BUF] != '\n'){
+    input.e--;
+    consputc(BACKSPACE);
+  }
+}
+
+#define KEY_UP          0xE2
+#define KEY_DN          0xE3
+#define KEY_LF          0xE4
+#define KEY_RT          0xE5
+
 void
 consoleintr(int (*getc)(void))
 {
@@ -196,6 +257,10 @@ consoleintr(int (*getc)(void))
   acquire(&cons.lock);
   while((c = getc()) >= 0){
     switch(c){
+    case KEY_LF:  // Cursor Backward
+        backwardCursor();
+        num_of_backs++;
+      break;
     case C('P'):  // Process listing.
       // procdump() locks cons.lock indirectly; invoke later
       doprocdump = 1;
@@ -208,7 +273,7 @@ consoleintr(int (*getc)(void))
       }
       break;
     case C('H'): case '\x7f':  // Backspace
-      if(input.e != input.w){
+      if(input.e != input.w && input.e - input.w > num_of_backs){
         input.e--;
         consputc(BACKSPACE);
       }
@@ -216,7 +281,8 @@ consoleintr(int (*getc)(void))
     default:
       if(c != 0 && input.e-input.r < INPUT_BUF){
         c = (c == '\r') ? '\n' : c;
-        input.buf[input.e++ % INPUT_BUF] = c;
+        // input.buf[input.e++ % INPUT_BUF] = c;
+        bufputc(c);
         consputc(c);
         if(c == '\n' || c == C('D') || input.e == input.r+INPUT_BUF){
           input.w = input.e;
