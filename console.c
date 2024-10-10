@@ -128,6 +128,7 @@ panic(char *s)
 //PAGEBREAK: 50
 #define BACKSPACE 0x100
 #define CRTPORT 0x3d4
+
 static ushort *crt = (ushort*)P2V(0xb8000);  // CGA memory
 
 static void
@@ -187,104 +188,230 @@ consputc(int c)
   cgaputc(c);
 }
 
+#define HISTORY_SIZE 11
 #define INPUT_BUF 128
-struct {
+
+struct Input{
   char buf[INPUT_BUF];
   uint r;  // Read index
   uint w;  // Write index
   uint e;  // Edit index
 } input;
 
+struct {
+  struct Input history[HISTORY_SIZE];
+  int curent;
+  int end;
+  int size;
+  int match;
+} inputs;
+
 #define C(x)  ((x)-'@')  // Control-x
 
+//xyz
 static void backwardCursor(){
   int pos;
+
   // get cursor position
   outb(CRTPORT, 14);
   pos = inb(CRTPORT+1) << 8;
   outb(CRTPORT, 15);
   pos |= inb(CRTPORT+1);
+
   // move back
   if(crt[pos - 2] != ('$' | 0x0700))
     pos--;
+
   // reset cursor
   outb(CRTPORT, 14);
   outb(CRTPORT+1, pos>>8);
   outb(CRTPORT, 15);
   outb(CRTPORT+1, pos);
-  //crt[pos] = ' ' | 0x0700;
+
 }
 
+//xyz
 static void forwardCursor(){
   int pos;
+
   // get cursor position
   outb(CRTPORT, 14);
   pos = inb(CRTPORT+1) << 8;
   outb(CRTPORT, 15);
   pos |= inb(CRTPORT+1);
+
   // move forward
   pos++;
+
   // reset cursor
   outb(CRTPORT, 14);
   outb(CRTPORT+1, pos>>8);
   outb(CRTPORT, 15);
   outb(CRTPORT+1, pos);
-  //crt[pos] = ' ' | 0x0700;
+
 }
 
-void consputs(const char* s){
-  for(int i = 0; i < INPUT_BUF && s[i]; ++i){
-    input.buf[input.e++ % INPUT_BUF] = s[i];
-    consputc(s[i]);
+// Move cursor to the previous line
+static void moveCursorUp() {
+  int pos;
+  // if (inputs.match == 0)
+  //   return;
+  // if (inputs.curent == 0)
+  //   return
+
+
+  // Get the current cursor position
+  outb(CRTPORT, 14);
+  pos = inb(CRTPORT + 1) << 8;
+  outb(CRTPORT, 15);
+  pos |= inb(CRTPORT + 1);
+
+  // Move the cursor up by one line (80 characters)
+  if (pos >= 80) {
+    pos -= 80;
+  }
+
+  // Set the new cursor position
+  outb(CRTPORT, 14);
+  outb(CRTPORT + 1, pos >> 8);
+  outb(CRTPORT, 15);
+  outb(CRTPORT + 1, pos);
+
+  // inputs.curent -= 1;
+  // input = inputs.history[inputs.curent];
+}
+
+// Move cursor to the next line
+static void moveCursorDown() {
+  int pos;
+  // if (inputs.match == 0)
+  //   return;
+  // if (inputs.curent == inputs.size-1)
+  //   return
+
+  // Get the current cursor position
+  outb(CRTPORT, 14);
+  pos = inb(CRTPORT + 1) << 8;
+  outb(CRTPORT, 15);
+  pos |= inb(CRTPORT + 1);
+
+  // Move the cursor down by one line (80 characters)
+  if (pos + 80 < 25 * 80) {  // Make sure the cursor doesn't go beyond the last line
+    pos += 80;
+  }
+
+  // Set the new cursor position
+  outb(CRTPORT, 14);
+  outb(CRTPORT + 1, pos >> 8);
+  outb(CRTPORT, 15);
+  outb(CRTPORT + 1, pos);
+}
+
+static void shiftright(char *buf)
+{
+  for (int i = input.e; i > input.e - num_of_backs; i--)
+  {
+    buf[(i) % INPUT_BUF] = buf[(i - 1) % INPUT_BUF]; // Shift elements to the right
   }
 }
-void shiftbuf() {
-    for (int i = input.e; i >= input.e - num_of_backs; i--)
-    {
-        input.buf[i] = input.buf[i - 1]; // Shift elements to the right
-    }
-}
-void bufputc(char c){
-  if(num_of_backs >0){
-      shiftbuf();
-      }
-  input.buf[(input.e - num_of_backs)% INPUT_BUF] = c;
-  input.e++;
-  
+
+static void shiftleft(char *buf)
+{
+  for (int i = input.e - num_of_backs - 1; i < input.e; i++)
+  {
+    buf[(i) % INPUT_BUF] = buf[(i + 1) % INPUT_BUF]; // Shift elements to the right
+  }
+  input.buf[input.e] = ' ';
 }
 
-void consclear(){
-  while(input.e !=  input.w &&
-        input.buf[(input.e-1) % INPUT_BUF] != '\n'){
-    input.e--;
+//xyz
+void display_clear()
+{
+  for (int i = 0; i < num_of_backs; i++)
+    forwardCursor();
+  num_of_backs = 0;
+  int end = input.e;
+  while (end != input.w &&
+         input.buf[(end - 1) % INPUT_BUF] != '\n')
+  {
+    end--;
     consputc(BACKSPACE);
   }
 }
+
+//xyz
+void display_command(){
+  for(int i = (input.w); i < input.e; i++){
+    consputc(input.buf[i]);
+  }
+}
+
+// //xyz
+// static void arrowup()
+// {
+//   if (inputs.curent == inputs.end)
+//   {
+//     inputs.history[inputs.end % HISTORY_SIZE] = input;
+//   }
+//   display_clear();
+//   input = inputs.history[--inputs.curent % HISTORY_SIZE];
+//   input.buf[--input.e] = '\0';
+//   display_command();
+// }
+
+// //xyz
+// static void arrowdown()
+// {
+//   if (inputs.curent < inputs.end)
+//   {
+//     display_clear();
+//     input = inputs.history[++inputs.curent % HISTORY_SIZE];
+//     if (input.e != input.w && inputs.curent != inputs.end)
+//       input.buf[--input.e] = '\0';
+//     display_command();
+//   }
+// }
+
 
 #define KEY_UP          0xE2
 #define KEY_DN          0xE3
 #define KEY_LF          0xE4
 #define KEY_RT          0xE5
 
-void
-consoleintr(int (*getc)(void))
+//xyz
+void consoleintr(int (*getc)(void))
 {
   int c, doprocdump = 0;
 
   acquire(&cons.lock);
   while((c = getc()) >= 0){
     switch(c){
+    case KEY_UP: 
+        if (inputs.size && inputs.end - inputs.curent < inputs.size)
+          moveCursorUp();
+        //   arrowup();
+      break;
+    case KEY_DN:
+        // if (inputs.size && inputs.end - inputs.curent > 0)  
+        moveCursorDown();
+        //   arrowdown();
+      break;
     case KEY_LF:  // Cursor Backward
-        backwardCursor();
-        num_of_backs++;
+        if((input.e - num_of_backs) > input.w){
+          backwardCursor();
+          num_of_backs++;
+        }
       break;
       case KEY_RT:  // Cursor Backward
+        if(num_of_backs > 0){
           forwardCursor();
           num_of_backs--;
+        }
         break;
     case C('P'):  // Process listing.
       // procdump() locks cons.lock indirectly; invoke later
       doprocdump = 1;
+      num_of_backs = 0;
       break;
     case C('U'):  // Kill line.
       while(input.e != input.w &&
@@ -293,19 +420,50 @@ consoleintr(int (*getc)(void))
         consputc(BACKSPACE);
       }
       break;
-    case C('H'): case '\x7f':  // Backspace
+    case C('H'): 
+    case '\x7f':  // Backspace
       if(input.e != input.w && input.e - input.w > num_of_backs){
+        if (num_of_backs > 0)
+          shiftleft(input.buf);
         input.e--;
         consputc(BACKSPACE);
       }
       break;
     default:
+      if((input.e - input.w) == 7){
+        int match = 1;
+        char *history_cmd = "history";
+        for(int i=input.w, j=0; i< input.e; i++, j++) {
+          if(input.buf[i] != history_cmd[j])
+            match = 0;
+        }
+        inputs.match = match;
+        if(match == 1){
+            for(int i=0;i<inputs.size;i++){
+              consputc('\n');
+              input = inputs.history[i];
+              input.buf[--input.e] = '\0';
+              display_command();
+              // inputs.curent = i;
+            }
+        }
+      }
       if(c != 0 && input.e-input.r < INPUT_BUF){
         c = (c == '\r') ? '\n' : c;
-        // input.buf[input.e++ % INPUT_BUF] = c;
-        bufputc(c);
+
+        if(c == '\n') {
+          num_of_backs = 0;
+          inputs.match = 0;
+        }
+
+        shiftright(input.buf);
+        input.buf[(input.e++ - num_of_backs) % INPUT_BUF] = c;
         consputc(c);
         if(c == '\n' || c == C('D') || input.e == input.r+INPUT_BUF){
+          inputs.history[inputs.end++ % HISTORY_SIZE] = input;
+          inputs.curent = inputs.end;
+          if (inputs.size < 10)
+            inputs.size++;
           input.w = input.e;
           wakeup(&input.r);
         }
@@ -319,8 +477,8 @@ consoleintr(int (*getc)(void))
   }
 }
 
-int
-consoleread(struct inode *ip, char *dst, int n)
+//xyz
+int consoleread(struct inode *ip, char *dst, int n)
 {
   uint target;
   int c;
@@ -357,29 +515,25 @@ consoleread(struct inode *ip, char *dst, int n)
   return target - n;
 }
 
-int
-consolewrite(struct inode *ip, char *buf, int n)
+//xyz
+int consolewrite(struct inode *ip, char *buf, int n)
 {
   int i;
-
   iunlock(ip);
   acquire(&cons.lock);
   for(i = 0; i < n; i++)
     consputc(buf[i] & 0xff);
   release(&cons.lock);
   ilock(ip);
-
   return n;
 }
 
-void
-consoleinit(void)
+//xyz
+void consoleinit(void)
 {
   initlock(&cons.lock, "console");
-
   devsw[CONSOLE].write = consolewrite;
   devsw[CONSOLE].read = consoleread;
   cons.locking = 1;
-
   ioapicenable(IRQ_KBD, 0);
 }
