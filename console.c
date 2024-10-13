@@ -16,7 +16,9 @@
 #include "x86.h"
 
 int num_of_backs = 0;
+int num_of_backs_saved = 0;
 int match_history = 0;
+int is_copy = 0;
 
 static void consputc(int);
 
@@ -150,11 +152,14 @@ cgaputc(int c)
       crt[i] = crt[i + 1];
 
     if(pos > 0) --pos;
-  } else{
+  } 
+  else{
     for (int i = pos + num_of_backs; i > pos ; i--)
       crt[i] = crt[i - 1];
     crt[pos++] = (c&0xff) | 0x0700;  // black on white
   }
+
+  
 
 
   if(pos < 0 || pos > 25*80)
@@ -197,7 +202,7 @@ struct Input{
   uint r;  // Read index
   uint w;  // Write index
   uint e;  // Edit index
-} input;
+} input,saved_input;
 
 struct {
   struct Input history[HISTORY_SIZE];
@@ -270,19 +275,64 @@ static void shiftleft(char *buf)
   input.buf[input.e] = ' ';
 }
 
+static void shiftright_saved(char *buf)
+{
+  for (int i = saved_input.e; i > saved_input.e - num_of_backs_saved; i--)
+  {
+    buf[(i) % INPUT_BUF] = buf[(i - 1) % INPUT_BUF]; // Shift elements to the right
+  }
+}
+
+static void shiftleft_saved(char *buf)
+{
+  for (int i = saved_input.e - num_of_backs_saved - 1; i < saved_input.e; i++)
+  {
+    buf[(i) % INPUT_BUF] = buf[(i + 1) % INPUT_BUF]; // Shift elements to the right
+  }
+  saved_input.buf[saved_input.e] = ' ';
+}
+
+// void display_clear()
+// {
+//   for (int i = 0; i < num_of_backs; i++)
+//     forwardCursor();
+//   num_of_backs = 0;
+//   int end = input.e;
+//   while (end != input.w &&
+//          input.buf[(end - 1) % INPUT_BUF] != '\n')
+//   {
+//     end--;
+//     consputc(BACKSPACE);
+//   }
+// }
 
 //xyz
+void clear_saved_input()
+{
+  int end = saved_input.e;
+  while (end != saved_input.w && saved_input.buf[(end - 1) % INPUT_BUF] != '\n')
+  {
+    saved_input.e--;
+  }
+}
+
+
 void display_clear()
 {
   for (int i = 0; i < num_of_backs; i++)
     forwardCursor();
   num_of_backs = 0;
   int end = input.e;
-  while (end != input.w &&
-         input.buf[(end - 1) % INPUT_BUF] != '\n')
+  while (end != input.w && input.buf[(end - 1) % INPUT_BUF] != '\n')
   {
     end--;
     consputc(BACKSPACE);
+  }
+}
+
+void display_saved_command(){
+  for(int i = (saved_input.w); i < saved_input.e; i++){
+    consputc(saved_input.buf[i]);
   }
 }
 
@@ -319,6 +369,7 @@ static void arrowdown()
   }
 }
 
+// static void copy_input()
 
 #define KEY_UP          0xE2
 #define KEY_DN          0xE3
@@ -348,17 +399,36 @@ void consoleintr(int (*getc)(void))
           backwardCursor();
           num_of_backs++;
         }
+        if((saved_input.e - num_of_backs_saved) > saved_input.w && is_copy == 1){
+          num_of_backs_saved++;
+        }
       break;
       case KEY_RT:  // Cursor Backward
         if(num_of_backs > 0){
           forwardCursor();
           num_of_backs--;
         }
+        if(num_of_backs_saved > 0 && is_copy == 1){
+          num_of_backs_saved--;
+        }
         break;
     case C('P'):  // Process listing.
       // procdump() locks cons.lock indirectly; invoke later
       doprocdump = 1;
       num_of_backs = 0;
+      num_of_backs_saved = 0;
+      break;
+    case C('S'):
+      is_copy = 1;
+      break;
+    case C('F'):
+      is_copy = 0;
+      display_saved_command();
+      for(int i = (saved_input.w); i < saved_input.e; i++){
+        input.buf[(input.e++ - num_of_backs) % INPUT_BUF] = saved_input.buf[i];
+      }
+      saved_input.e = saved_input.w;
+      num_of_backs_saved = 0;
       break;
     case C('U'):  // Kill line.
       while(input.e != input.w &&
@@ -374,6 +444,11 @@ void consoleintr(int (*getc)(void))
           shiftleft(input.buf);
         input.e--;
         consputc(BACKSPACE);
+      }
+      if(saved_input.e != saved_input.w && saved_input.e - saved_input.w > num_of_backs_saved && is_copy == 1){
+        if (num_of_backs_saved > 0)
+          shiftleft_saved(saved_input.buf);
+        saved_input.e--;
       }
       break;
     default:
@@ -414,11 +489,15 @@ void consoleintr(int (*getc)(void))
 
         if(c == '\n') {
           num_of_backs = 0;
+          num_of_backs_saved = 0;
           match_history = 0;
         }
 
         shiftright(input.buf);
+        shiftright_saved(saved_input.buf);
         input.buf[(input.e++ - num_of_backs) % INPUT_BUF] = c;
+        if(is_copy == 1)
+          saved_input.buf[(saved_input.e++ - num_of_backs_saved) % INPUT_BUF] = c;
         consputc(c);
         if((c == '\n' || c == C('D') || input.e == input.r+INPUT_BUF) && match_history == 0 ){
           inputs.history[inputs.end++ % HISTORY_SIZE] = input;
