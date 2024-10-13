@@ -16,6 +16,7 @@
 #include "x86.h"
 
 int num_of_backs = 0;
+int match_history = 0;
 
 static void consputc(int);
 
@@ -251,61 +252,6 @@ static void forwardCursor(){
 
 }
 
-// Move cursor to the previous line
-static void moveCursorUp() {
-  int pos;
-  // if (inputs.match == 0)
-  //   return;
-  // if (inputs.curent == 0)
-  //   return
-
-
-  // Get the current cursor position
-  outb(CRTPORT, 14);
-  pos = inb(CRTPORT + 1) << 8;
-  outb(CRTPORT, 15);
-  pos |= inb(CRTPORT + 1);
-
-  // Move the cursor up by one line (80 characters)
-  if (pos >= 80) {
-    pos -= 80;
-  }
-
-  // Set the new cursor position
-  outb(CRTPORT, 14);
-  outb(CRTPORT + 1, pos >> 8);
-  outb(CRTPORT, 15);
-  outb(CRTPORT + 1, pos);
-
-  // inputs.curent -= 1;
-  // input = inputs.history[inputs.curent];
-}
-
-// Move cursor to the next line
-static void moveCursorDown() {
-  int pos;
-  // if (inputs.match == 0)
-  //   return;
-  // if (inputs.curent == inputs.size-1)
-  //   return
-
-  // Get the current cursor position
-  outb(CRTPORT, 14);
-  pos = inb(CRTPORT + 1) << 8;
-  outb(CRTPORT, 15);
-  pos |= inb(CRTPORT + 1);
-
-  // Move the cursor down by one line (80 characters)
-  if (pos + 80 < 25 * 80) {  // Make sure the cursor doesn't go beyond the last line
-    pos += 80;
-  }
-
-  // Set the new cursor position
-  outb(CRTPORT, 14);
-  outb(CRTPORT + 1, pos >> 8);
-  outb(CRTPORT, 15);
-  outb(CRTPORT + 1, pos);
-}
 
 static void shiftright(char *buf)
 {
@@ -323,6 +269,7 @@ static void shiftleft(char *buf)
   }
   input.buf[input.e] = ' ';
 }
+
 
 //xyz
 void display_clear()
@@ -346,31 +293,31 @@ void display_command(){
   }
 }
 
-// //xyz
-// static void arrowup()
-// {
-//   if (inputs.curent == inputs.end)
-//   {
-//     inputs.history[inputs.end % HISTORY_SIZE] = input;
-//   }
-//   display_clear();
-//   input = inputs.history[--inputs.curent % HISTORY_SIZE];
-//   input.buf[--input.e] = '\0';
-//   display_command();
-// }
+//xyz
+static void arrowup()
+{
+  if (inputs.curent == inputs.end)
+  {
+    inputs.history[inputs.end % HISTORY_SIZE] = input;
+  }
+  display_clear();
+  input = inputs.history[--inputs.curent % HISTORY_SIZE];
+  input.buf[--input.e] = '\0';
+  display_command();
+}
 
-// //xyz
-// static void arrowdown()
-// {
-//   if (inputs.curent < inputs.end)
-//   {
-//     display_clear();
-//     input = inputs.history[++inputs.curent % HISTORY_SIZE];
-//     if (input.e != input.w && inputs.curent != inputs.end)
-//       input.buf[--input.e] = '\0';
-//     display_command();
-//   }
-// }
+//xyz
+static void arrowdown()
+{
+  if (inputs.curent < inputs.end)
+  {
+    display_clear();
+    input = inputs.history[++inputs.curent % HISTORY_SIZE];
+    if (input.e != input.w && inputs.curent != inputs.end)
+      input.buf[--input.e] = '\0';
+    display_command();
+  }
+}
 
 
 #define KEY_UP          0xE2
@@ -387,14 +334,14 @@ void consoleintr(int (*getc)(void))
   while((c = getc()) >= 0){
     switch(c){
     case KEY_UP: 
-        if (inputs.size && inputs.end - inputs.curent < inputs.size)
-          moveCursorUp();
-        //   arrowup();
+        if (inputs.size && inputs.end - inputs.curent < inputs.size && match_history)
+          arrowup();
+          // moveCursorUp();
       break;
     case KEY_DN:
-        // if (inputs.size && inputs.end - inputs.curent > 0)  
-        moveCursorDown();
-        //   arrowdown();
+        if (match_history)  
+          arrowdown();
+        // moveCursorDown();
       break;
     case KEY_LF:  // Cursor Backward
         if((input.e - num_of_backs) > input.w){
@@ -431,21 +378,35 @@ void consoleintr(int (*getc)(void))
       break;
     default:
       if((input.e - input.w) == 7){
-        int match = 1;
-        char *history_cmd = "history";
-        for(int i=input.w, j=0; i< input.e; i++, j++) {
-          if(input.buf[i] != history_cmd[j])
-            match = 0;
-        }
-        inputs.match = match;
-        if(match == 1){
-            for(int i=0;i<inputs.size;i++){
-              consputc('\n');
-              input = inputs.history[i];
-              input.buf[--input.e] = '\0';
-              display_command();
-              // inputs.curent = i;
-            }
+
+        if (match_history == 0) {
+          match_history = 1;
+          char *history_cmd = "history";
+          for(int i=input.w, j=0; i< input.e; i++, j++) {
+            if(input.buf[i] != history_cmd[j])
+              match_history = 0;
+          }
+          // inputs.match = match_history;
+          if(match_history == 1){
+              for(int i=0;i<inputs.size;i++){
+                consputc('\n');
+                match_history = 1;
+                input = inputs.history[i];
+                input.buf[--input.e] = '\0';
+                display_command();
+                if(i == inputs.size-1){
+                  consputc('\n');
+                  match_history = 1;
+                  display_command();
+                  arrowup();
+                }
+                if(inputs.size == 0){
+                  consputc('\n');
+                  match_history = 1;
+                // inputs.curent = i;
+                }
+              }
+          }
         }
       }
       if(c != 0 && input.e-input.r < INPUT_BUF){
@@ -453,13 +414,13 @@ void consoleintr(int (*getc)(void))
 
         if(c == '\n') {
           num_of_backs = 0;
-          inputs.match = 0;
+          match_history = 0;
         }
 
         shiftright(input.buf);
         input.buf[(input.e++ - num_of_backs) % INPUT_BUF] = c;
         consputc(c);
-        if(c == '\n' || c == C('D') || input.e == input.r+INPUT_BUF){
+        if((c == '\n' || c == C('D') || input.e == input.r+INPUT_BUF) && match_history == 0 ){
           inputs.history[inputs.end++ % HISTORY_SIZE] = input;
           inputs.curent = inputs.end;
           if (inputs.size < 10)
