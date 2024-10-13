@@ -292,19 +292,6 @@ static void shiftleft_saved(char *buf)
   saved_input.buf[saved_input.e] = ' ';
 }
 
-// void display_clear()
-// {
-//   for (int i = 0; i < num_of_backs; i++)
-//     forwardCursor();
-//   num_of_backs = 0;
-//   int end = input.e;
-//   while (end != input.w &&
-//          input.buf[(end - 1) % INPUT_BUF] != '\n')
-//   {
-//     end--;
-//     consputc(BACKSPACE);
-//   }
-// }
 
 //xyz
 void clear_saved_input()
@@ -367,6 +354,12 @@ static void arrowdown()
       input.buf[--input.e] = '\0';
     display_command();
   }
+}
+
+int is_digit_number(char c) {
+  if (c >= '0' && c <= '9' )
+    return 1;
+  return 0;
 }
 
 // static void copy_input()
@@ -463,27 +456,77 @@ void consoleintr(int (*getc)(void))
           }
           // inputs.match = match_history;
           if(match_history == 1){
-              for(int i=0;i<inputs.size;i++){
+            for(int i=0;i<inputs.size;i++){
+              consputc('\n');
+              match_history = 1;
+              input = inputs.history[i];
+              input.buf[--input.e] = '\0';
+              display_command();
+              if(i == inputs.size-1){
                 consputc('\n');
                 match_history = 1;
-                input = inputs.history[i];
-                input.buf[--input.e] = '\0';
                 display_command();
-                if(i == inputs.size-1){
-                  consputc('\n');
-                  match_history = 1;
-                  display_command();
-                  arrowup();
-                }
-                if(inputs.size == 0){
-                  consputc('\n');
-                  match_history = 1;
-                // inputs.curent = i;
-                }
+                arrowup();
               }
+              if(inputs.size == 0){
+                consputc('\n');
+                match_history = 1;
+              }
+            }
           }
         }
       }
+
+      if(input.e >= 5) {
+        int match_equation = 1;
+        int ans = 0;
+        int num1 = 0;
+        int num2 = 0;
+        int edit_place = input.e - num_of_backs;
+        if (is_digit_number(input.buf[edit_place-5]) && is_digit_number(input.buf[edit_place-3]) && input.buf[edit_place-2] == '=' && input.buf[edit_place-1] == '?') {
+          num1 = input.buf[edit_place-5] - '0';
+          num2 = input.buf[edit_place-3] - '0';
+          if (input.buf[edit_place-4] == '+')
+            ans = num1 + num2;
+          else if (input.buf[edit_place-4] == '-')
+            ans = num1 - num2;
+          else if (input.buf[edit_place-4] == '*')
+            ans = num1 * num2;
+          else if (input.buf[edit_place-4] == '/')
+            ans = num1 / num2;
+          else
+            match_equation = 0;         
+        }
+        else {
+          match_equation = 0;
+        }
+        ans++;
+        if(match_equation == 1) {
+          for(int i=0;i<5;i++){
+            if(input.e != input.w && input.e - input.w > num_of_backs){
+              if (num_of_backs > 0)
+                shiftleft(input.buf);
+              input.e--;
+              consputc(BACKSPACE);
+              }
+            if(saved_input.e != saved_input.w && saved_input.e - saved_input.w > num_of_backs_saved && is_copy == 1) {
+              if (num_of_backs_saved > 0)
+                shiftleft_saved(saved_input.buf);
+              saved_input.e--;
+            }
+          }
+          char inp_ans = '0';
+          shiftright(input.buf);
+          shiftright_saved(saved_input.buf);
+          input.buf[(input.e++ - num_of_backs) % INPUT_BUF] = inp_ans;
+          if(is_copy == 1)
+            saved_input.buf[(saved_input.e++ - num_of_backs_saved) % INPUT_BUF] = inp_ans;
+          consputc(inp_ans);
+          }
+        }
+      
+
+
       if(c != 0 && input.e-input.r < INPUT_BUF){
         c = (c == '\r') ? '\n' : c;
 
