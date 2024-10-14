@@ -369,6 +369,15 @@ int is_digit_number(char c) {
 #define KEY_LF          0xE4
 #define KEY_RT          0xE5
 
+static void  print_answer(char inp_ans) {
+  shiftright(input.buf);
+  shiftright_saved(saved_input.buf);
+  input.buf[(input.e++ - num_of_backs) % INPUT_BUF] = inp_ans;
+  if(is_copy == 1)
+    saved_input.buf[(saved_input.e++ - num_of_backs_saved) % INPUT_BUF] = inp_ans;
+  consputc(inp_ans);
+}
+
 //xyz
 void consoleintr(int (*getc)(void))
 {
@@ -500,7 +509,6 @@ void consoleintr(int (*getc)(void))
         else {
           match_equation = 0;
         }
-        ans++;
         if(match_equation == 1) {
           for(int i=0;i<5;i++){
             if(input.e != input.w && input.e - input.w > num_of_backs){
@@ -516,12 +524,16 @@ void consoleintr(int (*getc)(void))
             }
           }
           char inp_ans = '0';
-          shiftright(input.buf);
-          shiftright_saved(saved_input.buf);
-          input.buf[(input.e++ - num_of_backs) % INPUT_BUF] = inp_ans;
-          if(is_copy == 1)
-            saved_input.buf[(saved_input.e++ - num_of_backs_saved) % INPUT_BUF] = inp_ans;
-          consputc(inp_ans);
+          if (ans < 0) {
+            print_answer('-');
+            ans = 0-ans;
+          }
+          if (ans > 9) {
+            inp_ans = '0' + (ans / 10);
+            print_answer(inp_ans);
+          }
+          inp_ans = '0' + (ans % 10);
+          print_answer(inp_ans);
           }
         }
       
