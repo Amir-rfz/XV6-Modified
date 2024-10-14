@@ -202,7 +202,7 @@ struct Input{
   uint r;  // Read index
   uint w;  // Write index
   uint e;  // Edit index
-} input,saved_input;
+} input,saved_input, copy_input;
 
 struct {
   struct Input history[HISTORY_SIZE];
@@ -387,12 +387,12 @@ void consoleintr(int (*getc)(void))
   while((c = getc()) >= 0){
     switch(c){
     case KEY_UP: 
-        if (inputs.size && inputs.end - inputs.curent < inputs.size && match_history)
+        if (inputs.size && inputs.end - inputs.curent < inputs.size && 1)
           arrowup();
           // moveCursorUp();
       break;
     case KEY_DN:
-        if (match_history)  
+        if (1)  
           arrowdown();
         // moveCursorDown();
       break;
@@ -454,37 +454,6 @@ void consoleintr(int (*getc)(void))
       }
       break;
     default:
-      if((input.e - input.w) == 7){
-
-        if (match_history == 0) {
-          match_history = 1;
-          char *history_cmd = "history";
-          for(int i=input.w, j=0; i< input.e; i++, j++) {
-            if(input.buf[i] != history_cmd[j])
-              match_history = 0;
-          }
-          // inputs.match = match_history;
-          if(match_history == 1){
-            for(int i=0;i<inputs.size;i++){
-              consputc('\n');
-              match_history = 1;
-              input = inputs.history[i];
-              input.buf[--input.e] = '\0';
-              display_command();
-              if(i == inputs.size-1){
-                consputc('\n');
-                match_history = 1;
-                display_command();
-                arrowup();
-              }
-              if(inputs.size == 0){
-                consputc('\n');
-                match_history = 1;
-              }
-            }
-          }
-        }
-      }
 
       if(input.e >= 5) {
         int match_equation = 1;
@@ -538,7 +507,6 @@ void consoleintr(int (*getc)(void))
         }
       
 
-
       if(c != 0 && input.e-input.r < INPUT_BUF){
         c = (c == '\r') ? '\n' : c;
 
@@ -546,7 +514,30 @@ void consoleintr(int (*getc)(void))
           num_of_backs = 0;
           num_of_backs_saved = 0;
           match_history = 0;
+          if((input.e - input.w) == 7){
+            if (match_history == 0) {
+              match_history = 1;
+              char *history_cmd = "history";
+              for(int i=input.w, j=0; i< input.e; i++, j++) {
+                if(input.buf[i] != history_cmd[j])
+                  match_history = 0;
+              }
+              copy_input = input;
+              if(match_history == 1){
+                consputc('\n');
+                for(int i=0; i<inputs.size; i++){
+                  input = inputs.history[i];
+                  input.buf[--input.e] = '\0';
+                  display_command();
+                  if (i != inputs.size - 1)
+                    consputc('\n');
+                }
+                input = copy_input;
+              }
+            }
+          }
         }
+
 
         shiftright(input.buf);
         shiftright_saved(saved_input.buf);
@@ -554,8 +545,16 @@ void consoleintr(int (*getc)(void))
         if(is_copy == 1)
           saved_input.buf[(saved_input.e++ - num_of_backs_saved) % INPUT_BUF] = c;
         consputc(c);
-        if((c == '\n' || c == C('D') || input.e == input.r+INPUT_BUF) && match_history == 0 ){
-          inputs.history[inputs.end++ % HISTORY_SIZE] = input;
+        if((c == '\n' || c == C('D') || input.e == input.r+INPUT_BUF) && 1){
+          if (inputs.size <= 10)
+            inputs.history[inputs.end++ % HISTORY_SIZE] = input;
+          else {
+            for (int i = 0; i < inputs.size; i++)
+            {
+              inputs.history[i] = inputs.history[i+1];
+            }
+            inputs.history[inputs.size - 1] = input; 
+          }
           inputs.curent = inputs.end;
           if (inputs.size < 10)
             inputs.size++;
