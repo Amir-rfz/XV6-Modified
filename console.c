@@ -152,14 +152,14 @@ cgaputc(int c)
       crt[i] = crt[i + 1];
 
     if(pos > 0) --pos;
-  } 
+  }
   else{
     for (int i = pos + num_of_backs; i > pos ; i--)
       crt[i] = crt[i - 1];
     crt[pos++] = (c&0xff) | 0x0700;  // black on white
   }
 
-  
+ 
 
 
   if(pos < 0 || pos > 25*80)
@@ -386,7 +386,7 @@ void consoleintr(int (*getc)(void))
   acquire(&cons.lock);
   while((c = getc()) >= 0){
     switch(c){
-    case KEY_UP: 
+    case KEY_UP:
         if (inputs.size && inputs.end - inputs.curent < inputs.size && 1)
           arrowup();
           // moveCursorUp();
@@ -439,7 +439,7 @@ void consoleintr(int (*getc)(void))
         consputc(BACKSPACE);
       }
       break;
-    case C('H'): 
+    case C('H'):
     case '\x7f':  // Backspace
       if(input.e != input.w && input.e - input.w > num_of_backs){
         if (num_of_backs > 0)
@@ -473,7 +473,7 @@ void consoleintr(int (*getc)(void))
           else if (input.buf[edit_place-4] == '/')
             ans = num1 / num2;
           else
-            match_equation = 0;         
+            match_equation = 0;        
         }
         else {
           match_equation = 0;
@@ -505,7 +505,7 @@ void consoleintr(int (*getc)(void))
           print_answer(inp_ans);
           }
         }
-      
+
 
       if(c != 0 && input.e-input.r < INPUT_BUF){
         c = (c == '\r') ? '\n' : c;
@@ -526,7 +526,7 @@ void consoleintr(int (*getc)(void))
               if(match_history == 1){
                 consputc('\n');
                 for(int i=0; i<inputs.size; i++){
-                  input = inputs.history[i];
+                  input = inputs.history[(inputs.end - inputs.size + i) % HISTORY_SIZE];
                   input.buf[--input.e] = '\0';
                   display_command();
                   if (i != inputs.size - 1)
@@ -546,15 +546,15 @@ void consoleintr(int (*getc)(void))
           saved_input.buf[(saved_input.e++ - num_of_backs_saved) % INPUT_BUF] = c;
         consputc(c);
         if((c == '\n' || c == C('D') || input.e == input.r+INPUT_BUF) && 1){
-          if (inputs.size <= 10)
-            inputs.history[inputs.end++ % HISTORY_SIZE] = input;
-          else {
-            for (int i = 0; i < inputs.size; i++)
-            {
-              inputs.history[i] = inputs.history[i+1];
-            }
-            inputs.history[inputs.size - 1] = input; 
-          }
+          // if (inputs.size <= 10)
+          inputs.history[inputs.end++ % HISTORY_SIZE] = input;
+          // else {
+          //   for (int i = 0; i < inputs.size; i++)
+          //   {
+          //     inputs.history[i] = inputs.history[i+1];
+          //   }
+            // inputs.history[inputs.size - 1] = input;
+          // }
           inputs.curent = inputs.end;
           if (inputs.size < 10)
             inputs.size++;
