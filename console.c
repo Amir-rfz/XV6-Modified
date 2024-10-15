@@ -524,7 +524,8 @@ void consoleintr(int (*getc)(void))
               }
               copy_input = input;
               if(match_history == 1){
-                consputc('\n');
+                if (inputs.size != 0)
+                  consputc('\n');
                 for(int i=0; i<inputs.size; i++){
                   input = inputs.history[(inputs.end - inputs.size + i) % HISTORY_SIZE];
                   input.buf[--input.e] = '\0';
@@ -546,15 +547,7 @@ void consoleintr(int (*getc)(void))
           saved_input.buf[(saved_input.e++ - num_of_backs_saved) % INPUT_BUF] = c;
         consputc(c);
         if((c == '\n' || c == C('D') || input.e == input.r+INPUT_BUF) && 1){
-          // if (inputs.size <= 10)
           inputs.history[inputs.end++ % HISTORY_SIZE] = input;
-          // else {
-          //   for (int i = 0; i < inputs.size; i++)
-          //   {
-          //     inputs.history[i] = inputs.history[i+1];
-          //   }
-            // inputs.history[inputs.size - 1] = input;
-          // }
           inputs.curent = inputs.end;
           if (inputs.size < 10)
             inputs.size++;
