@@ -19,6 +19,7 @@ int num_of_backs = 0;
 int num_of_backs_saved = 0;
 int match_history = 0;
 int is_copy = 0;
+int copy_is_end = 0;
 
 static void consputc(int);
 
@@ -421,16 +422,22 @@ void consoleintr(int (*getc)(void))
       num_of_backs_saved = 0;
       break;
     case C('S'):
+      saved_input.e = saved_input.w;
+      num_of_backs_saved = 0;
       is_copy = 1;
+      copy_is_end = 0;
       break;
     case C('F'):
+      if (copy_is_end == 0) {
+        copy_is_end = 1;
+        is_copy = 0;
+        break;
+      }
       is_copy = 0;
       display_saved_command();
       for(int i = (saved_input.w); i < saved_input.e; i++){
         input.buf[(input.e++ - num_of_backs) % INPUT_BUF] = saved_input.buf[i];
       }
-      saved_input.e = saved_input.w;
-      num_of_backs_saved = 0;
       break;
     case C('U'):  // Kill line.
       while(input.e != input.w &&
