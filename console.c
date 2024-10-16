@@ -521,12 +521,14 @@ void consoleintr(int (*getc)(void))
           num_of_backs = 0;
           num_of_backs_saved = 0;
           match_history = 0;
-          if((input.e - input.w) == 7){
+          if((input.e - input.w) >= 7){
             if (match_history == 0) {
               match_history = 1;
               char *history_cmd = "history";
               for(int i=input.w, j=0; i< input.e; i++, j++) {
-                if(input.buf[i] != history_cmd[j])
+                if(input.buf[i] != history_cmd[j] && j <= 6)
+                  match_history = 0;
+                else if (j >= 7 && input.buf[i] != ' ')
                   match_history = 0;
               }
               copy_input = input;
