@@ -9,15 +9,12 @@ void CalculateEncode(const char *word1, char *result) {
     int i = 0;
     while (word1[i] != '\0') {
         char c = word1[i];
-        // Check if the character is lowercase
         if (c >= 'a' && c <= 'z') {
             result[i] = ((c - 'a' + KEY) % 26) + 'a';
         }
-        // Check if the character is uppercase
         else if (c >= 'A' && c <= 'Z') {
             result[i] = ((c - 'A' + KEY) % 26) + 'A';
         }
-        // Keep other characters unchanged
         else {
             result[i] = c;
         }
@@ -38,10 +35,8 @@ int main(int argc, char *argv[]) {
         exit();
     }
 
-    // Allocate buffer dynamically or use a static buffer
     char result[512]; 
 
-    // Encode and write each argument (argv[1] to argv[argc-1]) to the file
     for (int i = 1; i < argc; i++) {
         CalculateEncode(argv[i], result);
         write(fd, result, strlen(result));
