@@ -21,6 +21,15 @@ int match_history = 0;
 int is_copy = 0;
 int copy_is_end = 0;
 
+// int edit_place = 0;
+// int state_machine = 0;
+// int num1 = 0;
+// int num2 = 0;
+// float answer = 0;
+// int is_negative = 0;
+// char my_operator = '+';
+// int my_switch = 0;
+
 static void consputc(int);
 
 static int panicked = 0;
@@ -363,14 +372,57 @@ int is_digit_number(char c) {
   return 0;
 }
 
-// static void copy_input()
+int is_operator(char c) {
+  if (c == '+' || c == '-' || c == '*' || c == '/' || c == '%')
+    return 1;
+  return 0;
+}
 
-#define KEY_UP          0xE2
-#define KEY_DN          0xE3
-#define KEY_LF          0xE4
-#define KEY_RT          0xE5
+int get_num(int index_num, int index_end ) {
+  int num = 0;
+  for (int i = index_num ; i <= index_end ; i++) {
+    num *= 10;
+    num += (input.buf[i] - '0');
+  }
+  return num;
+}
 
-static void  print_answer(char inp_ans) {
+float get_answer(int index_num1, int index_num2, int edit_place, int is_num1_neg) {
+    int num1 = get_num(index_num1, index_num2-2);
+    int num2 = get_num(index_num2, edit_place-3);
+    float float_ans = 0;
+    if (is_num1_neg == 1)
+      num1 = 0-num1;
+    if (input.buf[index_num2 - 1] == '+')
+      float_ans = num1 + num2;
+    else if (input.buf[index_num2 - 1] == '-')
+      float_ans = num1 - num2;
+    else if (input.buf[index_num2 - 1] == '*')
+      float_ans = num1 * num2;
+    else if (input.buf[index_num2 - 1] == '%')
+      float_ans = num1 % num2;
+    else if (input.buf[index_num2 - 1] == '/') 
+      float_ans = (float)num1 / num2; 
+    return float_ans;
+}
+
+void remove_equation(int remove_num) {
+  for(int i=0;i<remove_num;i++){
+    if(input.e != input.w && input.e - input.w > num_of_backs){
+      if (num_of_backs > 0)
+        shiftleft(input.buf);
+      input.e--;
+      consputc(BACKSPACE);
+      }
+    if(saved_input.e != saved_input.w && saved_input.e - saved_input.w > num_of_backs_saved && is_copy == 1) {
+      if (num_of_backs_saved > 0)
+        shiftleft_saved(saved_input.buf);
+      saved_input.e--;
+    }
+  }
+}
+
+static void  print_char(char inp_ans) {
   shiftright(input.buf);
   shiftright_saved(saved_input.buf);
   input.buf[(input.e++ - num_of_backs) % INPUT_BUF] = inp_ans;
@@ -378,6 +430,41 @@ static void  print_answer(char inp_ans) {
     saved_input.buf[(saved_input.e++ - num_of_backs_saved) % INPUT_BUF] = inp_ans;
   consputc(inp_ans);
 }
+
+
+void print_number(int ans) {
+  if (ans <= 0)
+    return;
+  print_number(ans / 10);
+  print_char('0' + (ans % 10));
+}
+
+void print_answer(float float_ans, int index_num2) {
+  char float_part = '0';
+  if (float_ans < 0) {
+    print_char('-');
+    float_ans = 0-float_ans;
+  }
+  if (input.buf[index_num2 - 1] == '/') {
+    int temp = float_ans * 10;
+    float_part = '0' + (temp % 10);
+  }
+  if (float_ans < 1)
+    print_char('0');
+  else
+    print_number((int)float_ans);
+  if (input.buf[index_num2 - 1] == '/') {
+    print_char('.');
+    print_char(float_part);
+  } 
+}
+
+// static void copy_input()
+
+#define KEY_UP          0xE2
+#define KEY_DN          0xE3
+#define KEY_LF          0xE4
+#define KEY_RT          0xE5
 
 //xyz
 void consoleintr(int (*getc)(void))
@@ -463,68 +550,49 @@ void consoleintr(int (*getc)(void))
     default:
 
       if(input.e >= 5) {
-        int match_equation = 1;
-        float float_ans = 0;
-        int ans = 0;
-        int num1 = 0;
-        int num2 = 0;
         int edit_place = input.e - num_of_backs;
-        if (is_digit_number(input.buf[edit_place-5]) && is_digit_number(input.buf[edit_place-3]) && input.buf[edit_place-2] == '=' && input.buf[edit_place-1] == '?') {
-          num1 = input.buf[edit_place-5] - '0';
-          num2 = input.buf[edit_place-3] - '0';
-          if (input.buf[edit_place-4] == '+')
-            ans = num1 + num2;
-          else if (input.buf[edit_place-4] == '-')
-            ans = num1 - num2;
-          else if (input.buf[edit_place-4] == '*')
-            ans = num1 * num2;
-          else if (input.buf[edit_place-4] == '%')
-            ans = num1 % num2;
-          else if (input.buf[edit_place-4] == '/') 
-            float_ans = (float)num1 / num2;
-          else
-            match_equation = 0;        
-        }
-        else {
-          match_equation = 0;
-        }
-        if(match_equation == 1) {
-          for(int i=0;i<5;i++){
-            if(input.e != input.w && input.e - input.w > num_of_backs){
-              if (num_of_backs > 0)
-                shiftleft(input.buf);
-              input.e--;
-              consputc(BACKSPACE);
+        int match_equation = 0;
+        int state_machine = 0;
+        int is_num1_neg = 0;
+        int index_num1 = 0;
+        int index_num2 = 0;
+
+        if (is_digit_number(input.buf[edit_place-3]) && input.buf[edit_place-2] == '=' && input.buf[edit_place-1] == '?') {
+          for (int i = edit_place -3 ; i >= input.w ; i--){
+            if (state_machine == 0){
+              if (is_digit_number(input.buf[i]))
+                continue;
+              else if(is_operator(input.buf[i])){
+                state_machine = 1;
+                index_num2 = i+1;
               }
-            if(saved_input.e != saved_input.w && saved_input.e - saved_input.w > num_of_backs_saved && is_copy == 1) {
-              if (num_of_backs_saved > 0)
-                shiftleft_saved(saved_input.buf);
-              saved_input.e--;
+              else
+                break;
             }
-          }
-          char inp_ans = '0';
-          if (input.buf[edit_place-4] == '/') {
-            ans = float_ans;
-            inp_ans = '0' + ans;
-            print_answer(inp_ans);
-            print_answer('.');
-            ans = float_ans * 10;
-            inp_ans = '0' + (ans % 10);
-            print_answer(inp_ans);
-          }
-          else { 
-            if (ans < 0) {
-              print_answer('-');
-              ans = 0-ans;
+            else if (state_machine == 1 && is_digit_number(input.buf[index_num2-2])){ 
+              match_equation = 1;
+              index_num1 = i;
+              if (is_digit_number(input.buf[i]))
+                continue;
+              else if (input.buf[i] == '-') {
+                index_num1 = i+1;
+                is_num1_neg = 1;
+                break;
+              }
+              else {
+                index_num1 = i+1;
+                break;
+              }
             }
-            if (ans > 9) {
-              inp_ans = '0' + (ans / 10);
-              print_answer(inp_ans);
-            }
-            inp_ans = '0' + (ans % 10);
-            print_answer(inp_ans);
           }
         }
+
+        if (match_equation == 1) {
+          float float_ans = get_answer(index_num1, index_num2, edit_place, is_num1_neg);
+          int num_remove = edit_place - index_num1 + is_num1_neg;
+          remove_equation(num_remove);  
+          print_answer(float_ans, index_num2);     
+        }        
       }
 
 
