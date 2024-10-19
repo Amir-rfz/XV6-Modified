@@ -464,6 +464,7 @@ void consoleintr(int (*getc)(void))
 
       if(input.e >= 5) {
         int match_equation = 1;
+        float float_ans = 0;
         int ans = 0;
         int num1 = 0;
         int num2 = 0;
@@ -477,8 +478,10 @@ void consoleintr(int (*getc)(void))
             ans = num1 - num2;
           else if (input.buf[edit_place-4] == '*')
             ans = num1 * num2;
-          else if (input.buf[edit_place-4] == '/')
-            ans = num1 / num2;
+          else if (input.buf[edit_place-4] == '%')
+            ans = num1 % num2;
+          else if (input.buf[edit_place-4] == '/') 
+            float_ans = (float)num1 / num2;
           else
             match_equation = 0;        
         }
@@ -500,18 +503,29 @@ void consoleintr(int (*getc)(void))
             }
           }
           char inp_ans = '0';
-          if (ans < 0) {
-            print_answer('-');
-            ans = 0-ans;
-          }
-          if (ans > 9) {
-            inp_ans = '0' + (ans / 10);
+          if (input.buf[edit_place-4] == '/') {
+            ans = float_ans;
+            inp_ans = '0' + ans;
+            print_answer(inp_ans);
+            print_answer('.');
+            ans = float_ans * 10;
+            inp_ans = '0' + (ans % 10);
             print_answer(inp_ans);
           }
-          inp_ans = '0' + (ans % 10);
-          print_answer(inp_ans);
+          else { 
+            if (ans < 0) {
+              print_answer('-');
+              ans = 0-ans;
+            }
+            if (ans > 9) {
+              inp_ans = '0' + (ans / 10);
+              print_answer(inp_ans);
+            }
+            inp_ans = '0' + (ans % 10);
+            print_answer(inp_ans);
           }
         }
+      }
 
 
       if(c != 0 && input.e-input.r < INPUT_BUF){
