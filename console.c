@@ -21,15 +21,6 @@ int match_history = 0;
 int is_copy = 0;
 int copy_is_end = 0;
 
-// int edit_place = 0;
-// int state_machine = 0;
-// int num1 = 0;
-// int num2 = 0;
-// float answer = 0;
-// int is_negative = 0;
-// char my_operator = '+';
-// int my_switch = 0;
-
 static void consputc(int);
 
 static int panicked = 0;
@@ -39,8 +30,7 @@ static struct {
   int locking;
 } cons;
 
-static void
-printint(int xx, int base, int sign)
+static void printint(int xx, int base, int sign)
 {
   static char digits[] = "0123456789abcdef";
   char buf[16];
@@ -66,8 +56,7 @@ printint(int xx, int base, int sign)
 //PAGEBREAK: 50
 
 // Print to the console. only understands %d, %x, %p, %s.
-void
-cprintf(char *fmt, ...)
+void cprintf(char *fmt, ...)
 {
   int i, c, locking;
   uint *argp;
@@ -144,8 +133,7 @@ panic(char *s)
 
 static ushort *crt = (ushort*)P2V(0xb8000);  // CGA memory
 
-static void
-cgaputc(int c)
+static void cgaputc(int c)
 {
   int pos;
 
@@ -166,11 +154,8 @@ cgaputc(int c)
   else{
     for (int i = pos + num_of_backs; i > pos ; i--)
       crt[i] = crt[i - 1];
-    crt[pos++] = (c&0xff) | 0x0700;  // black on white
+    crt[pos++] = (c&0xff) | 0x0700; // black on white
   }
-
- 
-
 
   if(pos < 0 || pos > 25*80)
     panic("pos under/overflow");
@@ -224,8 +209,7 @@ struct {
 
 #define C(x)  ((x)-'@')  // Control-x
 
-//xyz
-static void backwardCursor(){
+static void backward_cursor(){
   int pos;
 
   // get cursor position
@@ -243,11 +227,9 @@ static void backwardCursor(){
   outb(CRTPORT+1, pos>>8);
   outb(CRTPORT, 15);
   outb(CRTPORT+1, pos);
-
 }
 
-//xyz
-static void forwardCursor(){
+static void forward_cursor(){
   int pos;
 
   // get cursor position
@@ -264,60 +246,47 @@ static void forwardCursor(){
   outb(CRTPORT+1, pos>>8);
   outb(CRTPORT, 15);
   outb(CRTPORT+1, pos);
-
 }
 
 
-static void shiftright(char *buf)
+static void shift_right(char *buf)
 {
   for (int i = input.e; i > input.e - num_of_backs; i--)
   {
-    buf[(i) % INPUT_BUF] = buf[(i - 1) % INPUT_BUF]; // Shift elements to the right
+    buf[(i) % INPUT_BUF] = buf[(i - 1) % INPUT_BUF];
   }
 }
 
-static void shiftleft(char *buf)
+static void shift_left(char *buf)
 {
   for (int i = input.e - num_of_backs - 1; i < input.e; i++)
   {
-    buf[(i) % INPUT_BUF] = buf[(i + 1) % INPUT_BUF]; // Shift elements to the right
+    buf[(i) % INPUT_BUF] = buf[(i + 1) % INPUT_BUF];
   }
   input.buf[input.e] = ' ';
 }
 
-static void shiftright_saved(char *buf)
+static void shift_right_saved(char *buf)
 {
   for (int i = saved_input.e; i > saved_input.e - num_of_backs_saved; i--)
   {
-    buf[(i) % INPUT_BUF] = buf[(i - 1) % INPUT_BUF]; // Shift elements to the right
+    buf[(i) % INPUT_BUF] = buf[(i - 1) % INPUT_BUF];
   }
 }
 
-static void shiftleft_saved(char *buf)
+static void shift_left_saved(char *buf)
 {
   for (int i = saved_input.e - num_of_backs_saved - 1; i < saved_input.e; i++)
   {
-    buf[(i) % INPUT_BUF] = buf[(i + 1) % INPUT_BUF]; // Shift elements to the right
+    buf[(i) % INPUT_BUF] = buf[(i + 1) % INPUT_BUF];
   }
   saved_input.buf[saved_input.e] = ' ';
 }
 
-
-//xyz
-void clear_saved_input()
-{
-  int end = saved_input.e;
-  while (end != saved_input.w && saved_input.buf[(end - 1) % INPUT_BUF] != '\n')
-  {
-    saved_input.e--;
-  }
-}
-
-
-void display_clear()
+void clear_line()
 {
   for (int i = 0; i < num_of_backs; i++)
-    forwardCursor();
+    forward_cursor();
   num_of_backs = 0;
   int end = input.e;
   while (end != input.w && input.buf[(end - 1) % INPUT_BUF] != '\n')
@@ -333,32 +302,29 @@ void display_saved_command(){
   }
 }
 
-//xyz
 void display_command(){
   for(int i = (input.w); i < input.e; i++){
     consputc(input.buf[i]);
   }
 }
 
-//xyz
-static void arrowup()
+static void arrow_up()
 {
   if (inputs.curent == inputs.end)
   {
     inputs.history[inputs.end % HISTORY_SIZE] = input;
   }
-  display_clear();
+  clear_line();
   input = inputs.history[--inputs.curent % HISTORY_SIZE];
   input.buf[--input.e] = '\0';
   display_command();
 }
 
-//xyz
-static void arrowdown()
+static void arrow_down()
 {
   if (inputs.curent < inputs.end)
   {
-    display_clear();
+    clear_line();
     input = inputs.history[++inputs.curent % HISTORY_SIZE];
     if (input.e != input.w && inputs.curent != inputs.end)
       input.buf[--input.e] = '\0';
@@ -410,21 +376,21 @@ void remove_equation(int remove_num) {
   for(int i=0;i<remove_num;i++){
     if(input.e != input.w && input.e - input.w > num_of_backs){
       if (num_of_backs > 0)
-        shiftleft(input.buf);
+        shift_left(input.buf);
       input.e--;
       consputc(BACKSPACE);
       }
-    if(saved_input.e != saved_input.w && saved_input.e - saved_input.w > num_of_backs_saved && is_copy == 1) {
+    if(saved_input.e != saved_input.w && saved_input.e - saved_input.w > num_of_backs_saved && is_copy == 1){
       if (num_of_backs_saved > 0)
-        shiftleft_saved(saved_input.buf);
+        shift_left_saved(saved_input.buf);
       saved_input.e--;
     }
   }
 }
 
 static void  print_char(char inp_ans) {
-  shiftright(input.buf);
-  shiftright_saved(saved_input.buf);
+  shift_right(input.buf);
+  shift_right_saved(saved_input.buf);
   input.buf[(input.e++ - num_of_backs) % INPUT_BUF] = inp_ans;
   if(is_copy == 1)
     saved_input.buf[(saved_input.e++ - num_of_backs_saved) % INPUT_BUF] = inp_ans;
@@ -459,14 +425,11 @@ void print_answer(float float_ans, int index_num2) {
   } 
 }
 
-// static void copy_input()
-
 #define KEY_UP          0xE2
 #define KEY_DN          0xE3
 #define KEY_LF          0xE4
 #define KEY_RT          0xE5
 
-//xyz
 void consoleintr(int (*getc)(void))
 {
   int c, doprocdump = 0;
@@ -476,26 +439,23 @@ void consoleintr(int (*getc)(void))
     switch(c){
     case KEY_UP:
         if (inputs.size && inputs.end - inputs.curent < inputs.size && 1)
-          arrowup();
-          // moveCursorUp();
+          arrow_up();
       break;
     case KEY_DN:
-        if (1)  
-          arrowdown();
-        // moveCursorDown();
+        arrow_down();
       break;
-    case KEY_LF:  // Cursor Backward
+    case KEY_LF:
         if((input.e - num_of_backs) > input.w){
-          backwardCursor();
+          backward_cursor();
           num_of_backs++;
         }
         if((saved_input.e - num_of_backs_saved) > saved_input.w && is_copy == 1){
           num_of_backs_saved++;
         }
       break;
-      case KEY_RT:  // Cursor Backward
+      case KEY_RT:
         if(num_of_backs > 0){
-          forwardCursor();
+          forward_cursor();
           num_of_backs--;
         }
         if(num_of_backs_saved > 0 && is_copy == 1){
@@ -537,13 +497,13 @@ void consoleintr(int (*getc)(void))
     case '\x7f':  // Backspace
       if(input.e != input.w && input.e - input.w > num_of_backs){
         if (num_of_backs > 0)
-          shiftleft(input.buf);
+          shift_left(input.buf);
         input.e--;
         consputc(BACKSPACE);
       }
       if(saved_input.e != saved_input.w && saved_input.e - saved_input.w > num_of_backs_saved && is_copy == 1){
         if (num_of_backs_saved > 0)
-          shiftleft_saved(saved_input.buf);
+          shift_left_saved(saved_input.buf);
         saved_input.e--;
       }
       break;
@@ -598,7 +558,6 @@ void consoleintr(int (*getc)(void))
 
       if(c != 0 && input.e-input.r < INPUT_BUF){
         c = (c == '\r') ? '\n' : c;
-
         if(c == '\n') {
           num_of_backs = 0;
           num_of_backs_saved = 0;
@@ -631,8 +590,8 @@ void consoleintr(int (*getc)(void))
         }
 
 
-        shiftright(input.buf);
-        shiftright_saved(saved_input.buf);
+        shift_right(input.buf);
+        shift_right_saved(saved_input.buf);
         input.buf[(input.e++ - num_of_backs) % INPUT_BUF] = c;
         if(is_copy == 1)
           saved_input.buf[(saved_input.e++ - num_of_backs_saved) % INPUT_BUF] = c;
@@ -655,7 +614,6 @@ void consoleintr(int (*getc)(void))
   }
 }
 
-//xyz
 int consoleread(struct inode *ip, char *dst, int n)
 {
   uint target;
@@ -693,20 +651,20 @@ int consoleread(struct inode *ip, char *dst, int n)
   return target - n;
 }
 
-//xyz
 int consolewrite(struct inode *ip, char *buf, int n)
 {
   int i;
+
   iunlock(ip);
   acquire(&cons.lock);
   for(i = 0; i < n; i++)
     consputc(buf[i] & 0xff);
   release(&cons.lock);
   ilock(ip);
+
   return n;
 }
 
-//xyz
 void consoleinit(void)
 {
   initlock(&cons.lock, "console");
