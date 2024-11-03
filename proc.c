@@ -532,3 +532,13 @@ procdump(void)
     cprintf("\n");
   }
 }
+
+void create_palindrome(int num) {
+  int temp = num;
+  int answer = num;
+  while (temp != 0) {
+    answer = (answer * 10) + (temp % 10);
+    temp /= 10;
+  }
+  cprintf("%d\n", answer);
+}

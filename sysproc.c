@@ -89,3 +89,12 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+int sys_create_palindrome(void)
+{
+  int number = myproc()->tf->ebx;
+  cprintf("Kernel: Executing palindrome generation system call with input: %d\n", number);
+  create_palindrome(number);
+
+  return 0;
+}
