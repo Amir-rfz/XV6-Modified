@@ -184,6 +184,7 @@ UPROGS=\
 	_encode\
 	_decode\
 	_palindrome\
+	_pid\
 
 fs.img: mkfs README $(UPROGS)
 	./mkfs fs.img README $(UPROGS)
