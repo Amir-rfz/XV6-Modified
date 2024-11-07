@@ -558,14 +558,11 @@ sort_syscalls(int pid)
     struct syscall_info temp;
 
     acquire(&ptable.lock);
-    // Find the process with the given pid
     for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
       if (p->pid == pid) {
-        // Bubble sort the syscalls by their number
         for (i = 0; i < MAX_SYSCALLS - 1; i++) {
           for (j = 0; j < MAX_SYSCALLS - i - 1; j++) {
             if (p->syscall_data[j].number > p->syscall_data[j + 1].number) {
-              // Swap syscall counts
               temp = p->syscall_data[j];
               p->syscall_data[j] = p->syscall_data[j + 1];
               p->syscall_data[j + 1] = temp;
@@ -584,11 +581,11 @@ sort_syscalls(int pid)
               cprintf("%d. Syscall Number: %d -> number of used: %d \n",index++, p->syscall_data[i].number, p->syscall_data[i].count);
             }
           }
-          return 0; // Success
+          return 0;
         }
       }
     }
     release(&ptable.lock);
     cprintf("Process with PID %d not found\n", pid);
-    return -1; // Failure if process not found
+    return -1;
 }

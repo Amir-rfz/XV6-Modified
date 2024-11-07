@@ -134,51 +134,25 @@ static int (*syscalls[])(void) = {
 [SYS_sort_syscalls] sys_sort_syscalls,
 };
 
-// void
-// syscall(void)
-// {
-//   int num;
-//   struct proc *curproc = myproc();
-
-//   num = curproc->tf->eax;
-//   if(num > 0 && num < NELEM(syscalls) && syscalls[num]) {
-//     // Increment the syscall count for the current process
-//     if (num < MAX_SYSCALLS) {
-//       if(syscall_exist(curproc,num))
-          
-//       curproc->syscall_counts[num]++;
-//     }
-//     curproc->tf->eax = syscalls[num]();
-//   } else {
-//     cprintf("%d %s: unknown sys call %d\n",
-//             curproc->pid, curproc->name, num);
-//     curproc->tf->eax = -1;
-//   }
-// }
-
 int record_syscall(struct proc *p, int num) {
     for (int i = 0; i < MAX_SYSCALLS; i++) {
         if (p->syscall_data[i].number == num) {
-            // Syscall exists, increment the count
             p->syscall_data[i].count++;
             return 1;
         }
-        // If we reach an uninitialized entry (number = 0), stop searching
         if (p->syscall_data[i].number == 0) {
             break;
         }
     }
 
-    // Add new syscall to the list
     for (int i = 0; i < MAX_SYSCALLS; i++) {
-        if (p->syscall_data[i].number == 0) { // Find the first empty slot
+        if (p->syscall_data[i].number == 0) {
             p->syscall_data[i].number = num;
             p->syscall_data[i].count = 1;
             return 0;
         }
     }
 
-    // If we reach here, syscall_data array is full, we can't add new syscalls
     cprintf("Error: syscall_data array full for PID %d\n", p->pid);
     return -1;
 }
@@ -189,12 +163,11 @@ void syscall(void) {
 
     num = curproc->tf->eax;
     if (num > 0 && num < NELEM(syscalls) && syscalls[num]) {
-        // Check if the syscall is in the list or add it if it's new
         if (num < MAX_SYSCALLS) {
             record_syscall(curproc, num);
         }
 
-        curproc->tf->eax = syscalls[num](); // Call the syscall function
+        curproc->tf->eax = syscalls[num]();
     } else {
         cprintf("%d %s: unknown sys call %d\n", curproc->pid, curproc->name, num);
         curproc->tf->eax = -1;
