@@ -121,6 +121,7 @@ int             wait(void);
 void            wakeup(void*);
 void            yield(void);
 void            create_palindrome(int);
+int             sort_syscalls(int);
 
 // swtch.S
 void            swtch(struct context**, struct context*);

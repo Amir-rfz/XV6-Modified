@@ -25,6 +25,7 @@ int sleep(int);
 int uptime(void);
 void create_palindrome(void);
 int move_file(char*, char*);
+int sort_syscalls(int);
 
     
 // ulib.c

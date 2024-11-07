@@ -6,6 +6,7 @@
 #include "x86.h"
 #include "proc.h"
 #include "spinlock.h"
+#include "syscall.h"
 
 struct {
   struct spinlock lock;
@@ -111,6 +112,12 @@ found:
   p->context = (struct context*)sp;
   memset(p->context, 0, sizeof *p->context);
   p->context->eip = (uint)forkret;
+
+  // Initialize syscall_data to zero
+  for (int i = 0; i < MAX_SYSCALLS; i++) {
+    p->syscall_data[i].number = 0;
+    p->syscall_data[i].count = 0;
+  }
 
   return p;
 }
@@ -541,4 +548,47 @@ void create_palindrome(int num) {
     temp /= 10;
   }
   cprintf("%d\n", answer);
+}
+
+int
+sort_syscalls(int pid)
+{
+    struct proc *p;
+    int i, j, flag = 0, index= 1;
+    struct syscall_info temp;
+
+    acquire(&ptable.lock);
+    // Find the process with the given pid
+    for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+      if (p->pid == pid) {
+        // Bubble sort the syscalls by their number
+        for (i = 0; i < MAX_SYSCALLS - 1; i++) {
+          for (j = 0; j < MAX_SYSCALLS - i - 1; j++) {
+            if (p->syscall_data[j].number > p->syscall_data[j + 1].number) {
+              // Swap syscall counts
+              temp = p->syscall_data[j];
+              p->syscall_data[j] = p->syscall_data[j + 1];
+              p->syscall_data[j + 1] = temp;
+            }
+          }
+        }
+        release(&ptable.lock);
+        flag = 1;
+      }
+    }
+    if (flag) {
+      for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+        if (p->pid == pid) {
+          for (i = 0; i < MAX_SYSCALLS - 1; i++) {
+            if (p->syscall_data[i].count != 0) {
+              cprintf("%d. Syscall Number: %d -> number of used: %d \n",index++, p->syscall_data[i].number, p->syscall_data[i].count);
+            }
+          }
+          return 0; // Success
+        }
+      }
+    }
+    release(&ptable.lock);
+    cprintf("Process with PID %d not found\n", pid);
+    return -1; // Failure if process not found
 }
