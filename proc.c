@@ -115,7 +115,7 @@ found:
 
   // Initialize syscall_data to zero
   for (int i = 0; i < MAX_SYSCALLS; i++) {
-    p->syscall_data[i].number = 0;
+    p->syscall_data[i].number = MAX_SYSCALLS + 1;
     p->syscall_data[i].count = 0;
   }
 

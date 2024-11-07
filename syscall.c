@@ -140,13 +140,13 @@ int record_syscall(struct proc *p, int num) {
             p->syscall_data[i].count++;
             return 1;
         }
-        if (p->syscall_data[i].number == 0) {
+        if (p->syscall_data[i].count == 0) {
             break;
         }
     }
 
     for (int i = 0; i < MAX_SYSCALLS; i++) {
-        if (p->syscall_data[i].number == 0) {
+        if (p->syscall_data[i].count == 0) {
             p->syscall_data[i].number = num;
             p->syscall_data[i].count = 1;
             return 0;
