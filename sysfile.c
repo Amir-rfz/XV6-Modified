@@ -442,3 +442,94 @@ sys_pipe(void)
   fd[1] = fd1;
   return 0;
 }
+
+int
+sys_move_file(void)
+{
+  char *src, *dest_dir;
+  struct file *fsrc, *fdst;
+  struct inode *ipsrc, *ipdst;
+  int n;
+
+  if (argstr(0, &src) < 0 || argstr(1, &dest_dir) < 0)
+    return -1;
+
+  char *filename = src;
+  for (char *p = src; *p; p++) {
+    if (*p == '/')
+      filename = p + 1;
+  }
+
+  char dst[512];
+  safestrcpy(dst, dest_dir, sizeof(dst));
+  int len = strlen(dst);
+  if (dst[len - 1] != '/')
+    safestrcpy(dst + len, "/", sizeof(dst) - len);
+  safestrcpy(dst + strlen(dst), filename, sizeof(dst) - strlen(dst));
+
+  begin_op();
+
+  if ((ipsrc = namei(src)) == 0)
+  {
+    end_op();
+    return -1;
+  }
+
+  if ((ipdst = namei(dst)) != 0)
+  {
+    end_op();
+    return -1;
+  }
+
+  ipdst = create(dst, T_FILE, 0, 0);
+  if (ipdst == 0)
+  {
+    end_op();
+    return -1;
+  }
+
+  if ((fdst = filealloc()) == 0)
+  {
+    iunlockput(ipdst);
+    end_op();
+    return -1;
+  }
+
+  iunlock(ipdst);
+
+  if ((fsrc = filealloc()) == 0)
+  {
+    end_op();
+    return -1;
+  }
+
+  fsrc->type = FD_INODE;
+  fsrc->ip = ipsrc;
+  fsrc->off = 0;
+  fsrc->readable = 1;
+  fsrc->writable = 0;
+
+  fdst->type = FD_INODE;
+  fdst->ip = ipdst;
+  fdst->off = 0;
+  fdst->readable = 1;
+  fdst->writable = 1;
+
+  char buffer[1024];
+  while ((n = fileread(fsrc, buffer, sizeof(buffer))) > 0)
+  {
+    if (filewrite(fdst, buffer, n) != n)
+    {
+      end_op();
+      return -1;
+    }
+  }
+
+
+  fileclose(fsrc);
+  fileclose(fdst);
+
+  end_op();
+
+  return n < 0 ? -1 : 0;
+}
