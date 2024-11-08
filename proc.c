@@ -590,3 +590,42 @@ sort_syscalls(int pid)
     cprintf("Process with PID %d not found\n", pid);
     return -1;
 }
+
+int
+get_most_invoked_syscall(int pid) 
+{
+  struct proc *p;
+  int i, flag = 0, max= 0, found_index= 0;
+
+  acquire(&ptable.lock);
+  for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+    if (p->pid == pid) {
+      for (i = 0; i < MAX_SYSCALLS - 1; i++) {
+        if (p->syscall_data[i].count > max) {
+          max = p->syscall_data[i].count;
+          found_index = i;
+        }
+      }
+      release(&ptable.lock);
+      flag = 1;
+    }
+  }
+  if (flag) {
+    for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+      if (p->pid == pid) {
+        if (max > 0) {
+          cprintf("Most invoked syscall: Name = %s | Number = %d | Usage Count = %d\n",
+                  p->syscall_data[found_index].name, p->syscall_data[found_index].number, p->syscall_data[found_index].count);
+          return p->syscall_data[found_index].number;
+        }
+        else {
+          cprintf("No system calls have been invoked");
+          return -1;
+        }
+      }
+    }
+  }
+  release(&ptable.lock);
+  cprintf("Process with PID %d not found\n", pid);
+  return -1;
+}

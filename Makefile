@@ -187,6 +187,7 @@ UPROGS=\
 	_pid\
 	_move_file\
 	_sort_syscall\
+	_get_most_syscal\
 
 fs.img: mkfs README $(UPROGS)
 	./mkfs fs.img README $(UPROGS)
@@ -260,6 +261,7 @@ EXTRA=\
 	palindrome.c\
 	move_file.c\
 	sort_syscall.c\
+	get_most_syscall.c\
 	README dot-bochsrc *.pl toc.* runoff runoff1 runoff.list\
 	.gdbinit.tmpl gdbutil\
 

@@ -5,7 +5,7 @@
 int main(int argc, char *argv[])
 {
   if (argc < 2) {
-    printf(2, "Usage: sort_syscalls <pid>\n");
+    printf(2, "Usage: sort_syscall <pid>\n");
     exit();
   }
 
