@@ -134,6 +134,10 @@ static int (*syscalls[])(void) = {
 [SYS_sort_syscalls] sys_sort_syscalls,
 };
 
+const char *syscall_names[] = {"fork", "exit", "wait", "pipe", "read", "kill", "exec", "fstat", "chdir", "dup",
+                                "getpid", "sbrk", "sleep", "uptime", "open", "wite", "mknod", "unlink", "link",
+                                "mkdir", "close", "create_palindrome", "move_file", "sort_syscalls"};
+
 int record_syscall(struct proc *p, int num) {
     for (int i = 0; i < MAX_SYSCALLS; i++) {
         if (p->syscall_data[i].number == num) {
@@ -149,6 +153,7 @@ int record_syscall(struct proc *p, int num) {
         if (p->syscall_data[i].count == 0) {
             p->syscall_data[i].number = num;
             p->syscall_data[i].count = 1;
+            p->syscall_data[i].name = syscall_names[num-1];
             return 0;
         }
     }

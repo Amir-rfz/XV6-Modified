@@ -37,8 +37,9 @@ struct context {
 enum procstate { UNUSED, EMBRYO, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 
 struct syscall_info {
-    int number;   // System call number
-    int count;    // Count of how many times this syscall was made
+    int number;         // System call number
+    int count;          // Count of how many times this syscall was made
+    const char* name;   // Name of syscall
 };
 
 // Per-process state

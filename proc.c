@@ -578,7 +578,8 @@ sort_syscalls(int pid)
         if (p->pid == pid) {
           for (i = 0; i < MAX_SYSCALLS - 1; i++) {
             if (p->syscall_data[i].count != 0) {
-              cprintf("%d. Syscall Number: %d -> number of used: %d \n",index++, p->syscall_data[i].number, p->syscall_data[i].count);
+              cprintf("Syscall #%d: Name = %s | Number = %d | Usage Count = %d\n",
+                      index++, p->syscall_data[i].name, p->syscall_data[i].number, p->syscall_data[i].count);
             }
           }
           return 0;
