@@ -554,47 +554,47 @@ void create_palindrome(int num) {
 int
 sort_syscalls(int pid)
 {
-    if (pid <= 0) {
-      cprintf("Process with PID %d not found\n", pid);
-      return -1;
+  if (pid <= 0) {
+    cprintf("Process with PID %d not found\n", pid);
+    return -1;
+  }
+
+  struct proc *p;
+  int i, j, flag = 0, index= 1;
+  struct syscall_info temp;
+
+  acquire(&ptable.lock);
+  for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+    if (p->pid == pid) {
+      for (i = 0; i < MAX_SYSCALLS - 1; i++) {
+        for (j = 0; j < MAX_SYSCALLS - i - 1; j++) {
+          if (p->syscall_data[j].number > p->syscall_data[j + 1].number) {
+            temp = p->syscall_data[j];
+            p->syscall_data[j] = p->syscall_data[j + 1];
+            p->syscall_data[j + 1] = temp;
+          }
+        }
+      }
+      release(&ptable.lock);
+      flag = 1;
     }
-
-    struct proc *p;
-    int i, j, flag = 0, index= 1;
-    struct syscall_info temp;
-
-    acquire(&ptable.lock);
+  }
+  if (flag) {
     for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
       if (p->pid == pid) {
         for (i = 0; i < MAX_SYSCALLS - 1; i++) {
-          for (j = 0; j < MAX_SYSCALLS - i - 1; j++) {
-            if (p->syscall_data[j].number > p->syscall_data[j + 1].number) {
-              temp = p->syscall_data[j];
-              p->syscall_data[j] = p->syscall_data[j + 1];
-              p->syscall_data[j + 1] = temp;
-            }
+          if (p->syscall_data[i].count != 0) {
+            cprintf("Syscall #%d: Name = %s | Number = %d | Usage Count = %d\n",
+                    index++, p->syscall_data[i].name, p->syscall_data[i].number, p->syscall_data[i].count);
           }
         }
-        release(&ptable.lock);
-        flag = 1;
+        return 0;
       }
     }
-    if (flag) {
-      for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
-        if (p->pid == pid) {
-          for (i = 0; i < MAX_SYSCALLS - 1; i++) {
-            if (p->syscall_data[i].count != 0) {
-              cprintf("Syscall #%d: Name = %s | Number = %d | Usage Count = %d\n",
-                      index++, p->syscall_data[i].name, p->syscall_data[i].number, p->syscall_data[i].count);
-            }
-          }
-          return 0;
-        }
-      }
-    }
-    release(&ptable.lock);
-    cprintf("Process with PID %d not found\n", pid);
-    return -1;
+  }
+  release(&ptable.lock);
+  cprintf("Process with PID %d not found\n", pid);
+  return -1;
 }
 
 int

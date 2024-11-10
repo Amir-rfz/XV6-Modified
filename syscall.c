@@ -144,44 +144,44 @@ const char *syscall_names[] = {"fork", "exit", "wait", "pipe", "read", "kill", "
                               "get_most_invoked_syscall", "list_all_processes"};
 
 int record_syscall(struct proc *p, int num) {
-    for (int i = 0; i < MAX_SYSCALLS; i++) {
-        if (p->syscall_data[i].number == num) {
-            p->syscall_data[i].count++;
-            p->syscall_counts++;
-            return 1;
-        }
-        if (p->syscall_data[i].count == 0) {
-            break;
-        }
+  for (int i = 0; i < MAX_SYSCALLS; i++) {
+    if (p->syscall_data[i].number == num) {
+      p->syscall_data[i].count++;
+      p->syscall_counts++;
+      return 1;
     }
-
-    for (int i = 0; i < MAX_SYSCALLS; i++) {
-        if (p->syscall_data[i].count == 0) {
-            p->syscall_data[i].number = num;
-            p->syscall_data[i].count = 1;
-            p->syscall_data[i].name = syscall_names[num-1];
-            p->syscall_counts++;
-            return 0;
-        }
+    if (p->syscall_data[i].count == 0) {
+      break;
     }
+  }
 
-    cprintf("Error: syscall_data array full for PID %d\n", p->pid);
-    return -1;
+  for (int i = 0; i < MAX_SYSCALLS; i++) {
+    if (p->syscall_data[i].count == 0) {
+      p->syscall_data[i].number = num;
+      p->syscall_data[i].count = 1;
+      p->syscall_data[i].name = syscall_names[num-1];
+      p->syscall_counts++;
+      return 0;
+    }
+  }
+
+  cprintf("Error: syscall_data array full for PID %d\n", p->pid);
+  return -1;
 }
 
 void syscall(void) {
-    int num;
-    struct proc *curproc = myproc();
+  int num;
+  struct proc *curproc = myproc();
 
-    num = curproc->tf->eax;
-    if (num > 0 && num < NELEM(syscalls) && syscalls[num]) {
-        if (num < MAX_SYSCALLS) {
-            record_syscall(curproc, num);
-        }
-
-        curproc->tf->eax = syscalls[num]();
-    } else {
-        cprintf("%d %s: unknown sys call %d\n", curproc->pid, curproc->name, num);
-        curproc->tf->eax = -1;
+  num = curproc->tf->eax;
+  if (num > 0 && num < NELEM(syscalls) && syscalls[num]) {
+    if (num < MAX_SYSCALLS) {
+        record_syscall(curproc, num);
     }
+
+    curproc->tf->eax = syscalls[num]();
+  } else {
+    cprintf("%d %s: unknown sys call %d\n", curproc->pid, curproc->name, num);
+    curproc->tf->eax = -1;
+  }
 }
