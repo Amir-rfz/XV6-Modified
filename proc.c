@@ -118,6 +118,7 @@ found:
     p->syscall_data[i].number = MAX_SYSCALLS + 1;
     p->syscall_data[i].count = 0;
   }
+  p->syscall_counts = 0;
 
   return p;
 }
@@ -553,6 +554,11 @@ void create_palindrome(int num) {
 int
 sort_syscalls(int pid)
 {
+    if (pid <= 0) {
+      cprintf("Process with PID %d not found\n", pid);
+      return -1;
+    }
+
     struct proc *p;
     int i, j, flag = 0, index= 1;
     struct syscall_info temp;
@@ -627,5 +633,26 @@ get_most_invoked_syscall(int pid)
   }
   release(&ptable.lock);
   cprintf("Process with PID %d not found\n", pid);
+  return -1;
+}
+
+int
+list_all_processes(void) 
+{
+  struct proc *p;
+  int flag=0, idx=1;
+
+  acquire(&ptable.lock);
+  for (idx=1, p = ptable.proc; p < &ptable.proc[NPROC]; p++, idx++) {
+      if (p->pid != 0) {
+        cprintf("Process #%d: Pid = %d | Syscall Count = %d\n", idx, p->pid, p->syscall_counts);     
+        flag = 1;
+      }
+  }
+  if (flag) {
+    release(&ptable.lock);
+    return 0;
+  }
+  release(&ptable.lock);
   return -1;
 }

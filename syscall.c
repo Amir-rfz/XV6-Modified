@@ -107,6 +107,7 @@ extern int sys_create_palindrome(void);
 extern int sys_move_file(void);
 extern int sys_sort_syscalls(void);
 extern int sys_get_most_invoked_syscall(void);
+extern int sys_list_all_processes(void);
 
 static int (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
@@ -134,16 +135,19 @@ static int (*syscalls[])(void) = {
 [SYS_move_file] sys_move_file,
 [SYS_sort_syscalls] sys_sort_syscalls,
 [SYS_get_most_invoked_syscall] sys_get_most_invoked_syscall,
+[SYS_list_all_processes] sys_list_all_processes,
 };
 
-const char *syscall_names[] = {"fork", "exit", "wait", "pipe", "read", "kill", "exec", "fstat", "chdir", "dup", "getpid", 
-                              "sbrk", "sleep", "uptime", "open", "write", "mknod", "unlink", "link", "mkdir", "close", 
-                              "create_palindrome", "move_file", "sort_syscalls", "get_most_invoked_syscall"};
+const char *syscall_names[] = {"fork", "exit", "wait", "pipe", "read", "kill", "exec", "fstat", "chdir", "dup", 
+                              "getpid", "sbrk", "sleep", "uptime", "open", "write", "mknod", "unlink", "link", 
+                              "mkdir", "close", "create_palindrome", "move_file", "sort_syscalls", 
+                              "get_most_invoked_syscall", "list_all_processes"};
 
 int record_syscall(struct proc *p, int num) {
     for (int i = 0; i < MAX_SYSCALLS; i++) {
         if (p->syscall_data[i].number == num) {
             p->syscall_data[i].count++;
+            p->syscall_counts++;
             return 1;
         }
         if (p->syscall_data[i].count == 0) {
@@ -156,6 +160,7 @@ int record_syscall(struct proc *p, int num) {
             p->syscall_data[i].number = num;
             p->syscall_data[i].count = 1;
             p->syscall_data[i].name = syscall_names[num-1];
+            p->syscall_counts++;
             return 0;
         }
     }

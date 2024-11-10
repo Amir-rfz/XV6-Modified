@@ -27,6 +27,7 @@ void create_palindrome(void);
 int move_file(char*, char*);
 int sort_syscalls(int);
 int get_most_invoked_syscall(int);
+int list_all_processes(void);
 
     
 // ulib.c

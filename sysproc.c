@@ -106,8 +106,8 @@ sys_sort_syscalls(void)
   int pid;
   if (argint(0, &pid) < 0)
     return -1;
-  int a = sort_syscalls(pid);
-  return a;
+  int output = sort_syscalls(pid);
+  return output;
 }
 
 int
@@ -117,5 +117,12 @@ sys_get_most_invoked_syscall(void)
   if (argint(0, &pid) < 0)
     return -1;
   int output = get_most_invoked_syscall(pid);
+  return output;
+}
+
+int 
+sys_list_all_processes(void)
+{
+  int output = list_all_processes();
   return output;
 }
