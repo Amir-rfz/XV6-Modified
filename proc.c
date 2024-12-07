@@ -122,6 +122,9 @@ found:
 
   p->sched_info.queue = UNSET;
   p->sched_info.get_cpu_time = ticks;
+  p->sched_info.sjf.arrival_time = ticks;
+  p->sched_info.sjf.Confidence = 50;
+  p->sched_info.sjf.BurstTime = 2;
   p->consecutive_time= 0;
   return p;
 }
@@ -230,6 +233,7 @@ fork(void)
   acquire(&tickslock);
   np->creation_time = ticks;
   np->sched_info.last_run = ticks;
+  np->sched_info.sjf.arrival_time = ticks;
   release(&tickslock);
 
   release(&ptable.lock);
@@ -343,6 +347,61 @@ round_robin(struct proc *last_scheduled)
     if (p == last_scheduled)
       return 0;
   }
+}
+
+static unsigned int seed = 1;
+
+void srand(unsigned int s) {
+  seed = s;
+}
+
+int rand(void) {
+  seed = (1103515245 * seed + 12345) & 0x7fffffff;
+  return seed;
+}
+
+struct proc *
+shortest_job_first(void)
+{
+  struct proc *p;
+  struct proc *sjf_process[NPROC];
+  int count = 0;
+
+  for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+  {
+    if (p->state == RUNNABLE && p->sched_info.queue == SJF)
+    {
+      sjf_process[count++] = p;
+    }
+  }
+
+  if (count == 0)
+    return 0;
+
+  for (int i = 0; i < count - 1; i++)
+  {
+    for (int j = i + 1; j < count; j++)
+    {
+      if (sjf_process[i]->sched_info.sjf.BurstTime > sjf_process[j]->sched_info.sjf.BurstTime)
+      {
+        struct proc *temp = sjf_process[i];
+        sjf_process[i] = sjf_process[j];
+        sjf_process[j] = temp;
+      }
+    }
+  }
+
+  for (int i = 0; i < count; i++)
+  {
+    srand(i+1);
+    int rand_num = rand() % 100;
+    if (rand_num < sjf_process[i]->sched_info.sjf.Confidence)
+    {
+      return sjf_process[i];
+    }
+  }
+
+  return sjf_process[count - 1];
 }
 
 //PAGEBREAK: 42

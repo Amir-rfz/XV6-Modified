@@ -45,9 +45,16 @@ struct syscall_info {
 
 enum schedule_queue {UNSET, ROUND_ROBIN, SJF, FCFS};
 
+struct sjf_info {
+  int arrival_time;
+  int Confidence;
+  int BurstTime;
+};
+
 struct schedule_info {
   enum schedule_queue queue;
   int last_run;
+  struct sjf_info sjf;
   int arrival_queue_time;
   int get_cpu_time;
 };
