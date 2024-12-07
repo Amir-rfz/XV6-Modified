@@ -404,6 +404,26 @@ shortest_job_first(void)
   return sjf_process[count - 1];
 }
 
+struct proc * first_come_first_serve(void)
+{
+  struct proc *result = 0;
+
+  struct proc *p;
+  for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+  {
+    if (p->state != RUNNABLE || p->sched_info.queue != FCFS)
+      continue;
+    if (result != 0)
+    {
+      if (result->sched_info.arrival_queue_time > p->sched_info.arrival_queue_time)
+        result = p;
+    }
+    else
+      result = p;
+  }
+  return result;
+}
+
 //PAGEBREAK: 42
 // Per-CPU process scheduler.
 // Each CPU calls scheduler() after setting itself up.
