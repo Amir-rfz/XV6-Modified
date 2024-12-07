@@ -120,6 +120,9 @@ found:
   }
   p->syscall_counts = 0;
 
+  p->sched_info.queue = UNSET;
+  p->sched_info.get_cpu_time = ticks;
+  p->consecutive_time= 0;
   return p;
 }
 
@@ -224,6 +227,11 @@ fork(void)
 
   np->state = RUNNABLE;
 
+  acquire(&tickslock);
+  np->creation_time = ticks;
+  np->sched_info.last_run = ticks;
+  release(&tickslock);
+
   release(&ptable.lock);
 
   return pid;
@@ -316,6 +324,24 @@ wait(void)
 
     // Wait for children to exit.  (See wakeup1 call in proc_exit.)
     sleep(curproc, &ptable.lock);  //DOC: wait-sleep
+  }
+}
+
+struct proc *
+round_robin(struct proc *last_scheduled)
+{
+  struct proc *p = last_scheduled;
+  for (;;)
+  {
+    p++;
+    if (p >= &ptable.proc[NPROC])
+      p = ptable.proc;
+
+    if (p->state == RUNNABLE && p->sched_info.queue == ROUND_ROBIN)
+      return p;
+
+    if (p == last_scheduled)
+      return 0;
   }
 }
 

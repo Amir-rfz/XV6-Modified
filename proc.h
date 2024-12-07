@@ -10,6 +10,7 @@ struct cpu {
   int ncli;                    // Depth of pushcli nesting.
   int intena;                  // Were interrupts enabled before pushcli?
   struct proc *proc;           // The process running on this cpu or null
+  int cpu_ticks;
 };
 
 extern struct cpu cpus[NCPU];
@@ -42,6 +43,15 @@ struct syscall_info {
     const char* name;   // Name of syscall
 };
 
+enum schedule_queue {UNSET, ROUND_ROBIN, SJF, FCFS};
+
+struct schedule_info {
+  enum schedule_queue queue;
+  int last_run;
+  int arrival_queue_time;
+  int get_cpu_time;
+};
+
 // Per-process state
 struct proc {
   uint sz;                     // Size of process memory (bytes)
@@ -59,6 +69,9 @@ struct proc {
   char name[16];               // Process name (debugging)
   struct syscall_info syscall_data[MAX_SYSCALLS];
   int syscall_counts;
+  int creation_time;
+  int consecutive_time;
+  struct schedule_info sched_info;
 };
 
 // Process memory is laid out contiguously, low addresses first:
