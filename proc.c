@@ -7,6 +7,7 @@
 #include "proc.h"
 #include "spinlock.h"
 #include "syscall.h"
+#include <stddef.h>
 
 struct {
   struct spinlock lock;
@@ -684,6 +685,22 @@ procdump(void)
   }
 }
 
+int compare_string(char *first, char *second) {
+    if (first == NULL || second == NULL) {
+        return 0; 
+    }
+
+    int i = 0;
+    while (first[i] != '\0' && second[i] != '\0') {
+        if (first[i] != second[i]) {
+            return 0; 
+        }
+        i++;
+    }
+
+    return first[i] == '\0' && second[i] == '\0';
+}
+
 int change_queue(int pid, int new_queue)
 {
   struct proc *p;
@@ -704,7 +721,10 @@ int change_queue(int pid, int new_queue)
     if (p->pid == pid)
     {
       old_queue = p->sched_info.queue;
-      p->sched_info.queue = new_queue;
+      if (compare_string(p->name, "sh"))
+        p->sched_info.queue = ROUND_ROBIN;
+      else
+        p->sched_info.queue = new_queue;
 
       p->sched_info.arrival_queue_time = ticks;
     }
