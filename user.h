@@ -29,6 +29,7 @@ int sort_syscalls(int);
 int get_most_invoked_syscall(int);
 int list_all_processes(void);
 int change_scheduling_queue(int, int);
+int set_sjf_params(int,int,int);
 
     
 // ulib.c

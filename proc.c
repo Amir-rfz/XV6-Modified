@@ -126,6 +126,7 @@ found:
   p->sched_info.sjf.Confidence = 50;
   p->sched_info.sjf.BurstTime = 2;
   p->consecutive_time= 0;
+
   return p;
 }
 
@@ -675,6 +676,25 @@ int change_queue(int pid, int new_queue)
   }
   release(&ptable.lock);
   return old_queue;
+}
+
+int set_sjf_params(int pid, int burstTime, int confidence)
+{
+  struct proc *p;
+
+  acquire(&ptable.lock);
+  for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+  {
+    if (p->pid == pid)
+    {
+      p->sched_info.sjf.BurstTime = burstTime;
+      p->sched_info.sjf.Confidence = confidence;
+      release(&ptable.lock);
+      return 0;
+    }
+  }
+  release(&ptable.lock);
+  return -1;
 }
 
 void create_palindrome(int num) {

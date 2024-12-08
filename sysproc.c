@@ -136,3 +136,14 @@ int sys_change_scheduling_queue(void)
     return -1;
   return change_queue(pid, queue_number);
 }
+
+int sys_set_sjf_params(void)
+{
+  int pid;
+  int priority_ratio, arrival_time_ratio;
+  if(argint(0, &pid) < 0 || argint(1, &priority_ratio) < 0 || argint(2, &arrival_time_ratio) < 0){
+    return -1;
+  }
+
+  return set_sjf_params(pid, priority_ratio, arrival_time_ratio);
+}
