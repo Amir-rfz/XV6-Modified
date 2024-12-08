@@ -106,7 +106,11 @@ trap(struct trapframe *tf)
   // If interrupts were on while locks held, would need to check nlock.
   if(myproc() && myproc()->state == RUNNING && tf->trapno == T_IRQ0+IRQ_TIMER) {
     myproc()->consecutive_time += 1;
-    if((myproc()->sched_info.queue == ROUND_ROBIN && ticks - myproc()->sched_info.get_cpu_time >= 5)) {
+    struct cpu *c = mycpu();
+    int time_periode = (c->cpu_ticks % 60) + 1;
+    c->cpu_ticks++;
+    if((myproc()->sched_info.queue == ROUND_ROBIN && ticks - myproc()->sched_info.get_cpu_time >= 5) ||
+      (time_periode == 30 || time_periode == 50 || time_periode == 60)) {
       // cprintf("tick = %d cpu_get_time = %d process pid = %d queue = %s\n",ticks, myproc()->sched_info.get_cpu_time, myproc()->pid, myproc()->sched_info.queue);
       yield();
     }

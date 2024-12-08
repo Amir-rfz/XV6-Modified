@@ -77,6 +77,8 @@ startothers(void)
   for(c = cpus; c < cpus+ncpu; c++){
     if(c == mycpu())  // We've started already.
       continue;
+    
+    c->cpu_ticks = 0;
 
     // Tell entryother.S what stack to use, where to enter, and what
     // pgdir to use. We cannot use kpgdir yet, because the AP processor

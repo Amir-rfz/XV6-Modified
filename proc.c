@@ -442,44 +442,67 @@ scheduler(void)
   struct proc *last_scheduled_RR = &ptable.proc[NPROC - 1];
   struct cpu *c = mycpu();
   c->proc = 0;
-  
-  for(;;){
+
+  for (;;)
+  {
     // Enable interrupts on this processor.
     sti();
 
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
     p = round_robin(last_scheduled_RR);
-    if(p) {
-      last_scheduled_RR = p;
+
+    int time_period = (c->cpu_ticks % 60) + 1;
+    if (time_period <= 30) {
+      p = round_robin(last_scheduled_RR);
+      if(p) {
+        last_scheduled_RR = p;
+      }
+      else {
+        time_period = 31; 
+      }
     }
-    else {
+
+    if (time_period >= 31 && time_period <= 50) {
       p = shortest_job_first();
       if (!p) {
-        p = first_come_first_serve();
-        if (!p) {
-          release(&ptable.lock);
-          continue;
-        }
+        time_period = 51;
       }
-    }    
-  // Switch to chosen process.  It is the process's job
-  // to release ptable.lock and then reacquire it
-  // before jumping back to us.
-  c->proc = p;
-  switchuvm(p);
-  p->state = RUNNING;
-  p->sched_info.get_cpu_time = ticks;
+    }
 
-  p->sched_info.last_run = ticks;
-  p->consecutive_time= 0;
-  swtch(&(c->scheduler), p->context);
-  switchkvm();
+    if (time_period >= 51) {
+      p = first_come_first_serve();
+      if (!p) {
+        c->cpu_ticks = 0;
+        release(&ptable.lock);
+        continue;
+      }
+    }
+    c->cpu_ticks = time_period - 1;
 
-  // Process is done running for now.
-  // It should have changed its p->state before coming back.
-  c->proc = 0;
-  release(&ptable.lock);
+    // Switch to chosen process.  It is the process's job
+    // to release ptable.lock and then reacquire it
+    // before jumping back to us.
+
+    if (c->proc)
+      c->proc->sched_info.last_run = ticks;
+    c->proc = p;
+    switchuvm(p);
+
+    p->state = RUNNING;
+    p->sched_info.get_cpu_time = ticks;
+
+    // p->sched_info.last_run = ticks;
+    p->consecutive_time= 0;
+
+    swtch(&(c->scheduler), p->context);
+
+    switchkvm();
+
+    // Process is done running for now.
+    // It should have changed its p->state before coming back.
+    c->proc = 0;
+    release(&ptable.lock);
   }
 }
 
