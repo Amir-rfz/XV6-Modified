@@ -439,6 +439,7 @@ void
 scheduler(void)
 {
   struct proc *p;
+  struct proc *last_scheduled_RR = &ptable.proc[NPROC - 1];
   struct cpu *c = mycpu();
   c->proc = 0;
   
@@ -448,26 +449,37 @@ scheduler(void)
 
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
-    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-      if(p->state != RUNNABLE)
-        continue;
-
-      // Switch to chosen process.  It is the process's job
-      // to release ptable.lock and then reacquire it
-      // before jumping back to us.
-      c->proc = p;
-      switchuvm(p);
-      p->state = RUNNING;
-
-      swtch(&(c->scheduler), p->context);
-      switchkvm();
-
-      // Process is done running for now.
-      // It should have changed its p->state before coming back.
-      c->proc = 0;
+    p = round_robin(last_scheduled_RR);
+    if(p) {
+      last_scheduled_RR = p;
     }
-    release(&ptable.lock);
+    else {
+      p = shortest_job_first();
+      if (!p) {
+        p = first_come_first_serve();
+        if (!p) {
+          release(&ptable.lock);
+          continue;
+        }
+      }
+    }    
+  // Switch to chosen process.  It is the process's job
+  // to release ptable.lock and then reacquire it
+  // before jumping back to us.
+  c->proc = p;
+  switchuvm(p);
+  p->state = RUNNING;
+  p->sched_info.get_cpu_time = ticks;
 
+  p->sched_info.last_run = ticks;
+  p->consecutive_time= 0;
+  swtch(&(c->scheduler), p->context);
+  switchkvm();
+
+  // Process is done running for now.
+  // It should have changed its p->state before coming back.
+  c->proc = 0;
+  release(&ptable.lock);
   }
 }
 
