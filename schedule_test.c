@@ -19,5 +19,5 @@ int main()
     }
     for (int i = 0; i < PROCESSS_NUM; i++)
         wait();
-    exit();
+    exit(); 
 }
