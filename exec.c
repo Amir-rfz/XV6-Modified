@@ -28,6 +28,7 @@ exec(char *path, char **argv)
   }
   ilock(ip);
   pgdir = 0;
+  change_queue(myproc()->pid, UNSET);
 
   // Check ELF header
   if(readi(ip, (char*)&elf, 0, sizeof(elf)) != sizeof(elf))
@@ -101,6 +102,7 @@ exec(char *path, char **argv)
   curproc->tf->esp = sp;
   switchuvm(curproc);
   freevm(oldpgdir);
+  // change_queue(myproc()->pid, UNSET);
   return 0;
 
  bad:

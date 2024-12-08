@@ -721,7 +721,7 @@ int change_queue(int pid, int new_queue)
     if (p->pid == pid)
     {
       old_queue = p->sched_info.queue;
-      if (compare_string(p->name, "sh"))
+      if (compare_string(p->name, "sh") || compare_string(p->name, "init"))
         p->sched_info.queue = ROUND_ROBIN;
       else
         p->sched_info.queue = new_queue;

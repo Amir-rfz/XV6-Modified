@@ -7,7 +7,7 @@ void help()
     printf(1, "Commands and Arguments:\n");
     printf(1, "1) info\n");
     printf(1, "2) change_queue <pid> <new_queue>\n");
-    printf(1, "3) set_sjf_param <pid> <burst_time>\n");
+    printf(1, "3) set_sjf_param <pid> <burst_time> <confidence>\n");
 }
 
 void print_info()
