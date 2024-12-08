@@ -126,3 +126,13 @@ sys_list_all_processes(void)
   int output = list_all_processes();
   return output;
 }
+
+int sys_change_scheduling_queue(void)
+{
+  int queue_number, pid;
+  if(argint(0, &pid) < 0 || argint(1, &queue_number) < 0)
+    return -1;
+  if(queue_number < ROUND_ROBIN || queue_number > FCFS)
+    return -1;
+  return change_queue(pid, queue_number);
+}

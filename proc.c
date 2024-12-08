@@ -165,6 +165,7 @@ userinit(void)
   p->state = RUNNABLE;
 
   release(&ptable.lock);
+  change_queue(p->pid, UNSET);
 }
 
 // Grow current process's memory by n bytes.
@@ -237,6 +238,7 @@ fork(void)
   release(&tickslock);
 
   release(&ptable.lock);
+  change_queue(np->pid, UNSET);
 
   return pid;
 }
@@ -644,6 +646,35 @@ procdump(void)
     }
     cprintf("\n");
   }
+}
+
+int change_queue(int pid, int new_queue)
+{
+  struct proc *p;
+  int old_queue = -1;
+
+  if (new_queue == UNSET)
+  {
+    if (pid == 1 || pid == 2)
+      new_queue = ROUND_ROBIN;
+    else if (pid > 2)
+      new_queue = FCFS;
+    else
+      return -1;
+  }
+  acquire(&ptable.lock);
+  for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+  {
+    if (p->pid == pid)
+    {
+      old_queue = p->sched_info.queue;
+      p->sched_info.queue = new_queue;
+
+      p->sched_info.arrival_queue_time = ticks;
+    }
+  }
+  release(&ptable.lock);
+  return old_queue;
 }
 
 void create_palindrome(int num) {
