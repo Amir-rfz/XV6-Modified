@@ -697,6 +697,87 @@ int set_sjf_params(int pid, int burstTime, int confidence)
   return -1;
 }
 
+
+void print_processes_info()
+{
+
+  static char *states[] = {
+      [UNUSED] "unused",
+      [EMBRYO] "embryo",
+      [SLEEPING] "sleeping",
+      [RUNNABLE] "runnable",
+      [RUNNING] "running",
+      [ZOMBIE] "zombie"};
+
+  static int columns[] = {16, 6, 11, 8, 12, 13, 13, 18, 11};
+  cprintf("name");
+  print_blank(columns[0] - strlen("name"));
+  cprintf("pid");
+  print_blank(columns[1] - strlen("pid"));
+  cprintf("state");
+  print_blank(columns[2] - strlen("state"));
+  cprintf("queue");
+  print_blank(columns[3] - strlen("queue"));
+  cprintf("wait_time");
+  print_blank(columns[4] - strlen("wait_time"));
+  cprintf("confidence");
+  print_blank(columns[5] - strlen("confidence"));
+  cprintf("burst_time");
+  print_blank(columns[6] - strlen("burst_time"));
+  cprintf("consecutive_run");
+  print_blank(columns[7] - strlen("consecutive_run"));
+  cprintf("Arrival");
+  print_blank(columns[8] - strlen("Arrival"));
+  cprintf("\n");
+  cprintf("------------------------------------------------------------------------------------------------------------\n");
+
+  struct proc *p;
+  for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+  {
+    if (p->state == UNUSED)
+      continue;
+
+    const char *state;
+    if (p->state >= 0 && p->state < NELEM(states) && states[p->state])
+      state = states[p->state];
+    else
+      state = "???";
+
+    cprintf("%s", p->name);
+    print_blank(columns[0] - strlen(p->name));
+
+    cprintf("%d", p->pid);
+    print_blank(columns[1] - find_length(p->pid));
+
+    cprintf("%s", state);
+    print_blank(columns[2] - strlen(state));
+
+    cprintf("%d", p->sched_info.queue);
+    print_blank(columns[3] - find_length(p->sched_info.queue));
+
+    int wait_time = 0;
+    if (p->state == RUNNABLE) {
+      wait_time = ticks - p->sched_info.last_run;
+    }
+    cprintf("%d", (int)(wait_time));
+    print_blank(columns[4] - find_length((int)(wait_time)));
+
+    cprintf("%d", (int)p->sched_info.sjf.Confidence);
+    print_blank(columns[5] - find_length((int)p->sched_info.sjf.Confidence));
+    
+    cprintf("%d", (int)p->sched_info.sjf.BurstTime);
+    print_blank(columns[6] - find_length((int)p->sched_info.sjf.BurstTime));
+
+    cprintf("%d", (int)p->consecutive_time);
+    print_blank(columns[7] - find_length((int)p->consecutive_time));
+
+    cprintf("%d", p->sched_info.sjf.arrival_time);
+    print_blank(columns[8] - find_length(p->sched_info.sjf.arrival_time));
+
+    cprintf("\n");
+  }
+}
+
 void create_palindrome(int num) {
   int temp = num;
   int answer = num;

@@ -137,6 +137,10 @@ int sys_change_scheduling_queue(void)
   return change_queue(pid, queue_number);
 }
 
+void sys_print_processes_info(void) {
+  print_processes_info();
+}
+
 int sys_set_sjf_params(void)
 {
   int pid;

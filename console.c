@@ -673,3 +673,22 @@ void consoleinit(void)
   cons.locking = 1;
   ioapicenable(IRQ_KBD, 0);
 }
+
+void print_blank(int num_of_space)
+{
+  for(int i = 0; i < num_of_space; i++){
+    cprintf(" ");
+  }
+}
+
+int find_length(int number) {
+  int count = 0;
+  if (number == 0) {
+    return 1;
+  }
+  while(number != 0) {
+    number /= 10;
+    count++;
+  }
+  return count;
+}

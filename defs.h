@@ -21,6 +21,8 @@ void            consoleinit(void);
 void            cprintf(char*, ...);
 void            consoleintr(int(*)(void));
 void            panic(char*) __attribute__((noreturn));
+void            print_blank(int count);
+int             find_length(int n);
 
 // exec.c
 int             exec(char*, char**);
@@ -125,6 +127,7 @@ int             sort_syscalls(int);
 int             get_most_invoked_syscall(int);
 int             list_all_processes(void);
 int             change_queue(int,int);
+void            print_processes_info(void);
 int             set_sjf_params(int, int, int);
 
 // swtch.S
