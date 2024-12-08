@@ -190,6 +190,7 @@ UPROGS=\
 	_get_most_syscal\
 	_list_processes\
 	_schedule\
+	_schedule_test\
 
 fs.img: mkfs README $(UPROGS)
 	./mkfs fs.img README $(UPROGS)
@@ -266,6 +267,7 @@ EXTRA=\
 	get_most_syscall.c\
 	list_all_processes.c\
 	schedule.c\
+	schedule_test.c\
 	README dot-bochsrc *.pl toc.* runoff runoff1 runoff.list\
 	.gdbinit.tmpl gdbutil\
 
