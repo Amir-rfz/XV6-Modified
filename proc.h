@@ -1,4 +1,5 @@
 #define MAX_SYSCALLS 50
+#define AGING_THRESHOLD 800
 
 // Per-CPU state
 struct cpu {

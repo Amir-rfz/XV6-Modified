@@ -690,6 +690,35 @@ int change_queue(int pid, int new_queue)
   return old_queue;
 }
 
+void aging_process(int os_ticks)
+{
+  struct proc *p;
+  acquire(&ptable.lock);
+  for (p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+  {
+    if (p->state == RUNNABLE && p->sched_info.queue != ROUND_ROBIN)
+    {
+      if (os_ticks - p->sched_info.last_run > AGING_THRESHOLD)
+      {
+        if (p->sched_info.queue == FCFS) {
+            release(&ptable.lock);
+            change_queue(p->pid, SJF);
+            p->sched_info.last_run = ticks;
+            acquire(&ptable.lock);
+        }
+        else {
+          release(&ptable.lock);
+          change_queue(p->pid, ROUND_ROBIN);
+            p->sched_info.last_run = ticks;
+          acquire(&ptable.lock);
+
+        }
+      }
+    }
+  }
+  release(&ptable.lock);
+}
+
 int set_sjf_params(int pid, int burstTime, int confidence)
 {
   struct proc *p;
