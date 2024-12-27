@@ -215,8 +215,15 @@ void syscall(void) {
 
   num = curproc->tf->eax;
   int coeff = get_coefficient(num);
+
+  pushcli();
   mycpu()->syscall_count += coeff;
+  popcli();
+
+  acquire(&total_syscallcount.lock);
   total_syscallcount.count += coeff;
+  release(&total_syscallcount.lock);
+
 
   if (num > 0 && num < NELEM(syscalls) && syscalls[num]) {
     if (num < MAX_SYSCALLS) {
