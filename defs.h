@@ -92,6 +92,7 @@ void            end_op();
 // mp.c
 extern int      ismp;
 void            mpinit(void);
+int             syscallcount(int cpu);
 
 // picirq.c
 void            picenable(int);
@@ -165,6 +166,8 @@ int             argstr(int, char**);
 int             fetchint(uint, int*);
 int             fetchstr(uint, char**);
 void            syscall(void);
+void            init_total_syscall_count(void);
+int             get_total_syscallcount(void);
 
 // timer.c
 void            timerinit(void);

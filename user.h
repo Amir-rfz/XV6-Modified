@@ -31,6 +31,7 @@ int list_all_processes(void);
 int change_scheduling_queue(int, int);
 int set_sjf_params(int,int,int);
 void print_processes_info(void);
+void getsyscallcount(void);
 
     
 // ulib.c

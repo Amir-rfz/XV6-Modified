@@ -6,6 +6,7 @@
 #include "memlayout.h"
 #include "mmu.h"
 #include "proc.h"
+#include "syscall.h"
 
 
 int
@@ -150,4 +151,21 @@ int sys_set_sjf_params(void)
   }
 
   return set_sjf_params(pid, priority_ratio, arrival_time_ratio);
+}
+
+int sys_getsyscallcount(void)
+{
+  int i, sum_count = 0, total_count;
+  for (i = 0; i < ncpu; i++) {
+    int count = syscallcount(i);
+    if(count >= 0) {
+      cprintf("System call count for core %d is %d\n", i, count);
+      sum_count += count;
+    }
+  }
+
+  total_count = get_total_syscallcount();
+  cprintf("Total syscall count is %d\n", total_count);
+  cprintf("Sum of syscall count is %d\n", sum_count);
+  return sum_count;
 }

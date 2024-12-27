@@ -12,6 +12,7 @@ struct cpu {
   int intena;                  // Were interrupts enabled before pushcli?
   struct proc *proc;           // The process running on this cpu or null
   int cpu_ticks;
+  int syscall_count;
 };
 
 extern struct cpu cpus[NCPU];

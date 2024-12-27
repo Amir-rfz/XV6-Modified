@@ -6,6 +6,13 @@
 #include "proc.h"
 #include "x86.h"
 #include "syscall.h"
+#include "spinlock.h"
+
+
+struct {
+  struct spinlock lock;
+  int count;
+} total_syscallcount;
 
 // User code makes a system call with INT T_SYSCALL.
 // System call number in %eax.
@@ -23,6 +30,19 @@ fetchint(uint addr, int *ip)
     return -1;
   *ip = *(int*)(addr);
   return 0;
+}
+
+void
+init_total_syscall_count(void)
+{
+  initlock(&total_syscallcount.lock, "total_syscallcount");
+  total_syscallcount.count = 0;
+}
+
+int 
+get_total_syscallcount(void)
+{
+  return total_syscallcount.count;
 }
 
 // Fetch the nul-terminated string at addr from the current process.
@@ -111,6 +131,7 @@ extern int sys_list_all_processes(void);
 extern int sys_change_scheduling_queue(void);
 extern int sys_print_processes_info(void);
 extern int sys_set_sjf_params(void);
+extern int sys_getsyscallcount(void);
 
 static int (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
@@ -142,6 +163,7 @@ static int (*syscalls[])(void) = {
 [SYS_change_scheduling_queue] sys_change_scheduling_queue,
 [SYS_print_processes_info] sys_print_processes_info,
 [SYS_set_sjf_params] sys_set_sjf_params,
+[SYS_getsyscallcount] sys_getsyscallcount,
 };
 
 const char *syscall_names[] = {"fork", "exit", "wait", "pipe", "read", "kill", "exec", "fstat", "chdir", "dup", 
@@ -175,11 +197,27 @@ int record_syscall(struct proc *p, int num) {
   return -1;
 }
 
+int get_coefficient(int pid) {
+  if (pid == 15) {
+    return 3;
+  }
+  else if (pid == 16) {
+    return 2;
+  }
+  else {
+    return 1;
+  }
+}
+
 void syscall(void) {
   int num;
   struct proc *curproc = myproc();
 
   num = curproc->tf->eax;
+  int coeff = get_coefficient(num);
+  mycpu()->syscall_count += coeff;
+  total_syscallcount.count += coeff;
+
   if (num > 0 && num < NELEM(syscalls) && syscalls[num]) {
     if (num < MAX_SYSCALLS) {
         record_syscall(curproc, num);
