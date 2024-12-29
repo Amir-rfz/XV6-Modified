@@ -9,6 +9,7 @@ struct spinlock;
 struct sleeplock;
 struct stat;
 struct superblock;
+struct reentrantlock;
 
 // bio.c
 void            binit(void);
@@ -143,6 +144,9 @@ void            initlock(struct spinlock*, char*);
 void            release(struct spinlock*);
 void            pushcli(void);
 void            popcli(void);
+void            initreentrantlock(struct reentrantlock*, char*);
+void            acquirereentrantlock(struct reentrantlock*);
+void            releasereentrantlock(struct reentrantlock*);
 
 // sleeplock.c
 void            acquiresleep(struct sleeplock*);

@@ -124,3 +124,31 @@ popcli(void)
     sti();
 }
 
+void initreentrantlock(struct reentrantlock *lock, char *name) {
+  initlock(&lock->lock, name);
+  lock->owner = 0;
+  lock->recursion = 0;
+}
+void acquirereentrantlock(struct reentrantlock *lock) {
+  pushcli(); 
+  if (lock->owner == myproc()) {
+    lock->recursion++;
+  } else {
+    acquire(&lock->lock);
+    lock->owner = myproc();
+    lock->recursion = 1;
+  }
+  popcli(); 
+}
+void releasereentrantlock(struct reentrantlock *lock) {
+  pushcli(); 
+  if (lock->owner != myproc()) {
+    panic("releasereentrantlock: not owner");
+  }
+  lock->recursion--;
+  if (lock->recursion == 0) {
+    lock->owner = 0;
+    release(&lock->lock);
+  }
+  popcli(); 
+}
