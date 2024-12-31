@@ -29,3 +29,4 @@
 #define SYS_print_processes_info 28
 #define SYS_set_sjf_params 29
 #define SYS_getsyscallcount 30
+#define SYS_testreentrantlock 31

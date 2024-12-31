@@ -7,6 +7,7 @@
 #include "mmu.h"
 #include "proc.h"
 #include "syscall.h"
+#include "spinlock.h"
 
 
 int
@@ -168,4 +169,23 @@ int sys_getsyscallcount(void)
   cprintf("Total syscall count is %d\n", total_count);
   cprintf("Sum of syscall count is %d\n", sum_count);
   return sum_count;
+}
+
+void recursive_lock(int depth, struct reentrantlock *test_lock) {
+  if (depth == 0) return;
+  acquirereentrantlock(test_lock); 
+  cprintf("Acquired lock at depth %d\n", depth);
+  recursive_lock(depth - 1, test_lock); 
+  cprintf("Releasing lock at depth %d\n", depth);
+  releasereentrantlock(test_lock); 
+}
+int sys_testreentrantlock(void) {
+  static struct reentrantlock test_lock;
+  static int initialized = 0;
+  if (!initialized) {
+    initreentrantlock(&test_lock, "reentrantlock");
+    initialized = 1; // Ensure that initialize only once
+  }
+  recursive_lock(5, &test_lock);
+  return 0;
 }

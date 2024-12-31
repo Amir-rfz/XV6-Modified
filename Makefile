@@ -192,6 +192,7 @@ UPROGS=\
 	_schedule\
 	_schedule_test\
 	_count_syscall\
+	_test_reentrantlock\
 
 fs.img: mkfs README $(UPROGS)
 	./mkfs fs.img README $(UPROGS)
