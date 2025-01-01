@@ -129,6 +129,7 @@ void initreentrantlock(struct reentrantlock *lock, char *name) {
   lock->owner = 0;
   lock->recursion = 0;
 }
+
 void acquirereentrantlock(struct reentrantlock *lock) {
   pushcli(); 
   if (lock->owner == myproc()) {
@@ -140,6 +141,7 @@ void acquirereentrantlock(struct reentrantlock *lock) {
   }
   popcli(); 
 }
+
 void releasereentrantlock(struct reentrantlock *lock) {
   pushcli(); 
   if (lock->owner != myproc()) {

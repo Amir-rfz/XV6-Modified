@@ -272,6 +272,7 @@ EXTRA=\
 	schedule.c\
 	schedule_test.c\
 	count_syscall.c\
+	test_reentrantlock.c\
 	README dot-bochsrc *.pl toc.* runoff runoff1 runoff.list\
 	.gdbinit.tmpl gdbutil\
 
