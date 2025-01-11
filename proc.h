@@ -1,5 +1,6 @@
 #define MAX_SYSCALLS 50
 #define AGING_THRESHOLD 800
+#define NUM_SHARED_MEMORY 64 
 
 // Per-CPU state
 struct cpu {
@@ -61,6 +62,13 @@ struct schedule_info {
   int get_cpu_time;
 };
 
+typedef struct SharedMemory {
+  int mem_id;
+  uint key;
+  uint size;
+  void *virtual_address;
+} SharedMemory;
+
 // Per-process state
 struct proc {
   uint sz;                     // Size of process memory (bytes)
@@ -81,6 +89,7 @@ struct proc {
   int creation_time;
   int consecutive_time;
   struct schedule_info sched_info;
+  SharedMemory pages[NUM_SHARED_MEMORY];
 };
 
 // Process memory is laid out contiguously, low addresses first:

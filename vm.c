@@ -6,6 +6,7 @@
 #include "mmu.h"
 #include "proc.h"
 #include "elf.h"
+#include "spinlock.h"
 
 extern char data[];  // defined by kernel.ld
 pde_t *kpgdir;  // for use in scheduler()
@@ -383,6 +384,104 @@ copyout(pde_t *pgdir, uint va, void *p, uint len)
     va = va0 + PGSIZE;
   }
   return 0;
+}
+struct SharedMemoryRegion {
+  uint key;
+  uint size;
+  uint shared_memory_part_size;      
+  int mem_id;                        
+  int shared_memory_nattch;       
+  void *physical_address[NUM_SHARED_MEMORY];
+};
+
+struct SharedMemoryTable {
+  struct spinlock lock;
+  struct SharedMemoryRegion shaared_mem[NUM_SHARED_MEMORY];
+} SharedMemoryTable;
+
+int 
+create_shared_memory(uint size, int given_index) 
+{
+  acquire(&SharedMemoryTable.lock);
+
+  int num_of_pages = (size / PGSIZE) + 1;
+  if (size <= 0 || num_of_pages > NUM_SHARED_MEMORY) {
+    release(&SharedMemoryTable.lock);
+    return -1;
+  }
+
+  for (int i = 0; i < num_of_pages; i++) {
+    char *new_page = kalloc();
+
+    if (new_page == 0) {
+      cprintf("memory limit: failed to allocate a page\n");
+      release(&SharedMemoryTable.lock);
+      return -1;
+    }
+
+    memset(new_page, 0, PGSIZE);
+    SharedMemoryTable.shaared_mem[given_index].physical_address[i] = (void *)V2P(new_page);
+  }
+
+  SharedMemoryTable.shaared_mem[given_index].key = 0;
+  SharedMemoryTable.shaared_mem[given_index].mem_id = given_index;
+  SharedMemoryTable.shaared_mem[given_index].size = num_of_pages;
+  SharedMemoryTable.shaared_mem[given_index].shared_memory_part_size = size;
+
+  release(&SharedMemoryTable.lock);
+  return given_index;
+}
+
+int 
+get_shared_memory_index(int mem_id)
+{
+  if (mem_id < 0 || mem_id > NUM_SHARED_MEMORY) {
+    return -1;
+  }
+
+  return SharedMemoryTable.shaared_mem[mem_id].mem_id;
+}
+
+void 
+inithial_shared_memory(void)
+{
+  initlock(&SharedMemoryTable.lock, "Shared Memory");
+  acquire(&SharedMemoryTable.lock);
+
+  for (int i = 0; i < NUM_SHARED_MEMORY; i++) {
+    SharedMemoryTable.shaared_mem[i].size = 0;
+    SharedMemoryTable.shaared_mem[i].key = -1;
+    SharedMemoryTable.shaared_mem[i].mem_id = -1;
+    SharedMemoryTable.shaared_mem[i].shared_memory_nattch = 0;
+    SharedMemoryTable.shaared_mem[i].shared_memory_part_size = 0;
+  }
+
+  for (int i = 0; i < NUM_SHARED_MEMORY; i++) {
+    for (int j = 0; j < NUM_SHARED_MEMORY; j++) {
+      SharedMemoryTable.shaared_mem[i].physical_address[j] = (void *)0;
+    }
+  }
+
+  release(&SharedMemoryTable.lock);
+}
+
+int 
+get_least_index(void *current_address, struct proc *process) 
+{
+  int found_index = -1;
+  void *least_address = (void *)(KERNBASE - 1);
+  
+  for (int i = 0; i < NUM_SHARED_MEMORY; i++) {
+    if  (process->pages[i].key != -1 && 
+        (uint)process->pages[i].virtual_address >= (uint)current_address && 
+        (uint)least_address >= (uint)process->pages[i].virtual_address) 
+    {
+      found_index = i;
+      least_address = process->pages[i].virtual_address;
+    }
+  }
+
+  return found_index;
 }
 
 //PAGEBREAK!

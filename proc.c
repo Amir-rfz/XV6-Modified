@@ -128,6 +128,14 @@ found:
   p->sched_info.sjf.BurstTime = 2;
   p->consecutive_time= 0;
 
+  // Initialise shared pages
+  for(int i = 0; i < NUM_SHARED_MEMORY; i++) {
+    p->pages[i].key = -1;
+    p->pages[i].mem_id = -1;
+    p->pages[i].size  = 0;
+    p->pages[i].virtual_address = (void *)0;
+  }
+
   return p;
 }
 
