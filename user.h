@@ -33,6 +33,7 @@ int set_sjf_params(int,int,int);
 void print_processes_info(void);
 void getsyscallcount(void);
 int testreentrantlock(void);
+int open_shared_memory(int);
 
     
 // ulib.c

@@ -237,6 +237,16 @@ fork(void)
 
   pid = np->pid;
 
+  for(int i = 0; i < NUM_SHARED_MEMORY; i++) {
+    if(curproc->pages[i].key != -1 && curproc->pages[i].mem_id != -1) {
+      np->pages[i] = curproc->pages[i];
+      int index = get_shared_memory_index(np->pages[i].mem_id);
+      if(index != -1) {
+        map_pages_wrapper(np, index, i);
+      }
+    }
+  }
+
   acquire(&ptable.lock);
 
   np->state = RUNNABLE;

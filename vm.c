@@ -385,6 +385,7 @@ copyout(pde_t *pgdir, uint va, void *p, uint len)
   }
   return 0;
 }
+
 struct SharedMemoryRegion {
   uint key;
   uint size;
@@ -482,6 +483,121 @@ get_least_index(void *current_address, struct proc *process)
   }
 
   return found_index;
+}
+
+void* 
+open_shared_memory(int mem_id)
+{
+  if (mem_id < 0 || mem_id > NUM_SHARED_MEMORY) {
+    return (void *)-1;
+  }
+
+  acquire(&SharedMemoryTable.lock);
+
+  int foound_index;
+  void *least_virtual_address;
+  void *virtual_address = (void *)HEAPLIMIT;
+  struct proc *process = myproc();
+
+  int index = SharedMemoryTable.shaared_mem[mem_id].mem_id;
+  if (index == -1) {
+    release(&SharedMemoryTable.lock);
+    index = create_shared_memory(2565, mem_id);
+    acquire(&SharedMemoryTable.lock);
+  }
+
+  if (index == -1) {
+    release(&SharedMemoryTable.lock);
+    return (void *)-1;
+  }
+  
+  for (int i = 0; i < NUM_SHARED_MEMORY; i++) {
+    foound_index = get_least_index(virtual_address, process);
+    if (foound_index != -1) {
+      least_virtual_address = process->pages[foound_index].virtual_address;
+
+      if ((uint)virtual_address + SharedMemoryTable.shaared_mem[index].size * PGSIZE <= (uint)least_virtual_address) {
+        break;
+      }
+      else {
+        virtual_address = (void *)((uint)least_virtual_address + process->pages[foound_index].size * PGSIZE);
+      }
+    }
+    else {
+      break;
+    }
+  }
+
+  if ((uint)virtual_address + SharedMemoryTable.shaared_mem[index].size * PGSIZE >= KERNBASE) {
+    release(&SharedMemoryTable.lock);
+    return (void *)-1;
+  }
+
+  foound_index = -1;
+  for (int i = 0; i < NUM_SHARED_MEMORY; i++) {
+    if (process->pages[i].key != -1 &&
+       (uint)process->pages[i].virtual_address + process->pages[i].size * PGSIZE > (uint)virtual_address && 
+       (uint)virtual_address >= (uint)process->pages[i].virtual_address) 
+    {
+      foound_index = i;
+      break;
+    }
+  }
+
+  if (foound_index != -1) {
+    release(&SharedMemoryTable.lock);
+    return (void *)-1;
+  }
+
+  for (int k = 0; k < SharedMemoryTable.shaared_mem[index].size; k++) {
+    if (mappages(process->pgdir, (void *)((uint)virtual_address + (k * PGSIZE)), PGSIZE, (uint)SharedMemoryTable.shaared_mem[index].physical_address[k], 06) < 0)
+    {
+      deallocuvm(process->pgdir, (uint)virtual_address, (uint)(virtual_address + SharedMemoryTable.shaared_mem[index].size));
+      release(&SharedMemoryTable.lock);
+      return (void *)-1;
+    }
+  }
+
+  foound_index = -1;
+  for (int i = 0; i < NUM_SHARED_MEMORY; i++) {
+    if (process->pages[i].key == -1) {
+      foound_index = i;
+      break;
+    }
+  }
+
+  if (foound_index != -1) {
+    process->pages[foound_index].mem_id = mem_id;
+    process->pages[foound_index].virtual_address = virtual_address;
+    SharedMemoryTable.shaared_mem[index].shared_memory_nattch += 1;
+    process->pages[foound_index].key = SharedMemoryTable.shaared_mem[index].key;
+    process->pages[foound_index].size = SharedMemoryTable.shaared_mem[index].size;
+  }
+
+  else {
+    release(&SharedMemoryTable.lock);
+    return (void *)-1;
+  }
+
+  release(&SharedMemoryTable.lock);
+  return virtual_address;
+}
+
+
+void 
+map_pages_wrapper(struct proc *process, int mem_id, int index)
+{
+  for (int i = 0; i < process->pages[index].size; i++) {
+    uint virtual_address = (uint)process->pages[index].virtual_address;
+
+    if (mappages(process->pgdir, (void *)(virtual_address + (i * PGSIZE)), PGSIZE, (uint)SharedMemoryTable.shaared_mem[mem_id].physical_address[i], 06) < 0)
+    {
+      deallocuvm(process->pgdir, virtual_address, (uint)(virtual_address + SharedMemoryTable.shaared_mem[mem_id].size));
+      return;
+    }
+
+    SharedMemoryTable.shaared_mem[mem_id].shared_memory_nattch += 1;
+  }
 }
 
 //PAGEBREAK!

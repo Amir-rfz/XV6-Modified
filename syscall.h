@@ -30,3 +30,4 @@
 #define SYS_set_sjf_params 29
 #define SYS_getsyscallcount 30
 #define SYS_testreentrantlock 31
+#define SYS_open_shared_memory 32

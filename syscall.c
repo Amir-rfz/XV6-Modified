@@ -133,6 +133,7 @@ extern int sys_print_processes_info(void);
 extern int sys_set_sjf_params(void);
 extern int sys_getsyscallcount(void);
 extern int sys_testreentrantlock(void);
+extern int sys_open_shared_memory(void);
 
 static int (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
@@ -166,6 +167,7 @@ static int (*syscalls[])(void) = {
 [SYS_set_sjf_params] sys_set_sjf_params,
 [SYS_getsyscallcount] sys_getsyscallcount,
 [SYS_testreentrantlock] sys_testreentrantlock,
+[SYS_open_shared_memory]  sys_open_shared_memory,
 };
 
 const char *syscall_names[] = {"fork", "exit", "wait", "pipe", "read", "kill", "exec", "fstat", "chdir", "dup", 

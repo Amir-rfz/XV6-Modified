@@ -189,3 +189,11 @@ int sys_testreentrantlock(void) {
   recursive_lock(5, &test_lock);
   return 0;
 }
+
+void* sys_open_shared_memory(void) {
+  int shared_memory_id;
+  if(argint(0, &shared_memory_id) < 0)
+    return (void*)0;
+
+  return open_shared_memory(shared_memory_id);
+}
