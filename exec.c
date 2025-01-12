@@ -94,6 +94,12 @@ exec(char *path, char **argv)
       last = s+1;
   safestrcpy(curproc->name, last, sizeof(curproc->name));
 
+  for(int i = 0; i < NUM_SHARED_MEMORY; i++) {
+    if(curproc->pages[i].mem_id != -1 && curproc->pages[i].key != -1) {
+      close_shared_memory_wrapper(curproc->pages[i].virtual_address);
+    }
+  }
+
   // Commit to the user image.
   oldpgdir = curproc->pgdir;
   curproc->pgdir = pgdir;

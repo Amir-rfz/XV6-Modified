@@ -600,6 +600,74 @@ map_pages_wrapper(struct proc *process, int mem_id, int index)
   }
 }
 
+int 
+close_shared_memory(void *shmaddr)
+{
+  acquire(&SharedMemoryTable.lock);
+  void *virtual_address = (void *)0;
+  struct proc *process = myproc();
+  int mem_id;
+  int index;
+  uint size;
+
+  for (int i = 0; i < NUM_SHARED_MEMORY; i++) {
+    if (process->pages[i].key != -1 && process->pages[i].virtual_address == shmaddr) {
+      index = i;
+      size = process->pages[index].size;
+      mem_id = process->pages[i].mem_id;
+      virtual_address = process->pages[i].virtual_address;
+      break;
+    }
+  }
+
+  if (virtual_address) {
+    for (int i = 0; i < size; i++) {
+      pte_t *pte = walkpgdir(process->pgdir, (void *)((uint)virtual_address + i * PGSIZE), 0);
+      if (pte == 0) {
+        release(&SharedMemoryTable.lock);
+        return -1;
+      }
+
+      *pte = 0;
+    }
+
+    process->pages[index].size = 0;
+    process->pages[index].key = -1;
+    process->pages[index].mem_id = -1;
+    process->pages[index].virtual_address = (void *)0;
+
+    if (SharedMemoryTable.shaared_mem[mem_id].shared_memory_nattch > 0) {
+      SharedMemoryTable.shaared_mem[mem_id].shared_memory_nattch -= 1;
+    }
+
+    if (SharedMemoryTable.shaared_mem[mem_id].shared_memory_nattch == 0) {
+      for (int i = 0; i < SharedMemoryTable.shaared_mem[index].size; i++) {
+        char *addr = (char *)P2V(SharedMemoryTable.shaared_mem[index].physical_address[i]);
+        kfree(addr);
+        SharedMemoryTable.shaared_mem[index].physical_address[i] = (void *)0;
+      }
+
+      SharedMemoryTable.shaared_mem[index].size = 0;
+      SharedMemoryTable.shaared_mem[index].shared_memory_nattch = 0;
+      SharedMemoryTable.shaared_mem[index].shared_memory_part_size = 0;
+      SharedMemoryTable.shaared_mem[index].key = SharedMemoryTable.shaared_mem[index].mem_id = -1;
+    }
+
+    release(&SharedMemoryTable.lock);
+    return 0;
+  }
+
+  else {
+    release(&SharedMemoryTable.lock);
+    return -1;
+  }
+}
+
+void close_shared_memory_wrapper(void *address) {
+  close_shared_memory(address);
+}
+
+
 //PAGEBREAK!
 // Blank page.
 //PAGEBREAK!

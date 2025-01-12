@@ -197,3 +197,10 @@ void* sys_open_shared_memory(void) {
 
   return open_shared_memory(shared_memory_id);
 }
+
+int sys_close_shared_memory(void) {
+  int index;
+  if(argint(0,&index)<0)
+    return 0;
+  return close_shared_memory((void*)index);
+}

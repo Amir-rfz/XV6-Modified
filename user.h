@@ -34,6 +34,7 @@ void print_processes_info(void);
 void getsyscallcount(void);
 int testreentrantlock(void);
 int open_shared_memory(int);
+int close_shared_memory(void*);
 
     
 // ulib.c

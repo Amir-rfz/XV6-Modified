@@ -31,3 +31,4 @@
 #define SYS_getsyscallcount 30
 #define SYS_testreentrantlock 31
 #define SYS_open_shared_memory 32
+#define SYS_close_shared_memory  33

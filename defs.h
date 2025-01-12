@@ -204,8 +204,10 @@ int             copyout(pde_t*, uint, void*, uint);
 void            clearpteu(pde_t *pgdir, char *uva);
 void            inithial_shared_memory(void);
 extern void*    open_shared_memory(int);
+extern int      close_shared_memory(void*);
 int             get_shared_memory_index(int);
 void            map_pages_wrapper(struct proc *process, int, int);
+void            close_shared_memory_wrapper(void *);
 
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))
