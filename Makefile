@@ -194,6 +194,7 @@ UPROGS=\
 	_schedule_test\
 	_count_syscall\
 	_test_reentrantlock\
+	_factorial\
 
 fs.img: mkfs README $(UPROGS)
 	./mkfs fs.img README $(UPROGS)
@@ -274,6 +275,7 @@ EXTRA=\
 	schedule_test.c\
 	count_syscall.c\
 	test_reentrantlock.c\
+	factorial.c\
 	README dot-bochsrc *.pl toc.* runoff runoff1 runoff.list\
 	.gdbinit.tmpl gdbutil\
 
