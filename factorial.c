@@ -56,5 +56,6 @@ int main(int argc, char *argv[]) {
 
   int input_factorial = atoi(argv[1]);
   test_shared_memory_with_factorial(input_factorial);
+  
   exit();
 }
