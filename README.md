@@ -30,9 +30,11 @@ The names of this project contributers is displayed when xv6 boots up.
 
 ### Part 2: Shell Features
 Following shortcuts are added to console:
-- `CTRL+R` : Removes digits from current line
-- `CTRL+N` : Reverses current line
-- `Tab`    : Filling out current line with the best option from last 15 used commands
+- `->` : Move cursor to right
+- `<-` : Move cursor to left
+- `history`    : show the ten last command that ussed
+- `arrow up & arrow down`  :  move into the history and select one of the previous command
+- `Ctrl+S & Ctrl+F ` : to start saving what we write in console and pased it
 
 ### Part 3: User Program
 `Prime Numbers` user program added to system which finds prime numbers in the given range and puts them in `prime_numbers.txt` file.
